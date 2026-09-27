@@ -8,9 +8,32 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
-    :root{--white:#ffffff;--off:#f7f6f4;--bg:#f0eeeb;--ink:#0c0c0c;--ink2:#3a3a3a;--muted:#888;--border:#e2dfdb;--accent:#1a6bf5;--danger:#c93b2a;--sidebar-w:220px;}
-    body{font-family:'Geist',system-ui,sans-serif;background:var(--off);color:var(--ink);min-height:100%;}
-    body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 900px 500px at 5% 0%,rgba(26,107,245,.05),transparent 50%);}
+    :root{--white:#ffffff;--off:#f8f9fa;--bg:#f1f3f4;--ink:#202124;--ink2:#3a3a3a;--muted:#5f6368;--border:#e8eaed;--accent:#1a73e8;--danger:#c93b2a;--sidebar-w:220px;}
+    body{font-family:'Geist',system-ui,sans-serif;background:var(--off);color:var(--ink);min-height:100%;position:relative;}
+
+    /* Multi-color corner fog lights */
+    body::before{
+      content:'';
+      position:fixed;inset:0;pointer-events:none;z-index:0;
+      background:
+        radial-gradient(ellipse 55% 45% at 0% 0%, rgba(66,133,244,0.18) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 100% 0%, rgba(234,67,53,0.12) 0%, transparent 50%),
+        radial-gradient(ellipse 50% 42% at 0% 100%, rgba(52,168,83,0.14) 0%, transparent 52%),
+        radial-gradient(ellipse 55% 45% at 100% 100%, rgba(251,188,5,0.16) 0%, transparent 55%);
+    }
+    body::after{
+      content:'';
+      position:fixed;inset:0;pointer-events:none;z-index:0;
+      background:
+        radial-gradient(circle 480px at 0% 0%, rgba(66,133,244,0.22) 0%, transparent 70%),
+        radial-gradient(circle 420px at 100% 0%, rgba(234,67,53,0.16) 0%, transparent 68%),
+        radial-gradient(circle 440px at 0% 100%, rgba(52,168,83,0.18) 0%, transparent 68%),
+        radial-gradient(circle 460px at 100% 100%, rgba(251,188,5,0.20) 0%, transparent 70%),
+        radial-gradient(circle 300px at 50% 50%, rgba(255,255,255,0.35) 0%, transparent 70%);
+      opacity:1;
+    }
+
+    
     .layout{position:relative;z-index:1;display:flex;min-height:100vh;}
     .sidebar{width:var(--sidebar-w);background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:20px 0;flex-shrink:0;}
     .sidebar-logo{font-family:'Instrument Serif',serif;font-size:18px;padding:0 20px 24px;text-decoration:none;color:var(--ink);display:block;}
