@@ -4,459 +4,715 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard — FamilyHub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #f8f9fa;
-      --surface: #ffffff;
-      --text: #202124;
-      --text-secondary: #5f6368;
-      --border: #e8eaed;
-      --accent: #1a73e8;
-      --accent-hover: #1765cc;
-      --shadow-soft: 0 1px 2px rgba(60,64,67,0.08), 0 1px 3px 1px rgba(60,64,67,0.06);
-      --shadow-card: 0 1px 3px rgba(60,64,67,0.08), 0 4px 8px 3px rgba(60,64,67,0.04);
-      --shadow-elevated: 0 2px 6px rgba(60,64,67,0.1), 0 8px 24px 4px rgba(60,64,67,0.06);
-      --radius: 12px;
-      --radius-sm: 8px;
-      --font: 'Google Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
-      --sidebar-w: 240px;
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    :root{
+      --white:#ffffff;
+      --off:#f7f6f4;
+      --bg:#f0eeeb;
+      --ink:#0c0c0c;
+      --ink2:#3a3a3a;
+      --muted:#888;
+      --border:#e2dfdb;
+      --accent:#1a6bf5;
+      --radius:12px;
+      --sidebar-w:220px;
     }
-    html { height: 100%; }
-    body {
-      font-family: var(--font);
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100%;
-      -webkit-font-smoothing: antialiased;
-    }
-    .ambient {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 0;
+    html{height:100%;}
+    body{font-family:'Geist',system-ui,sans-serif;background:var(--off);color:var(--ink);-webkit-font-smoothing:antialiased;min-height:100%;}
+    body::before{
+      content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
       background:
-        radial-gradient(ellipse 80% 50% at 5% 10%, rgba(255,255,255,0.9) 0%, transparent 50%),
-        radial-gradient(ellipse 50% 40% at 95% 90%, rgba(232,234,237,0.55) 0%, transparent 50%);
-      opacity: 0.85;
+        radial-gradient(ellipse 900px 500px at 5% 0%,rgba(26,107,245,.05),transparent 50%),
+        radial-gradient(ellipse 600px 400px at 100% 100%,rgba(240,238,235,.6),transparent 45%);
     }
-    /* Layout */
-    .layout {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      min-height: 100vh;
-    }
+    .layout{position:relative;z-index:1;display:flex;min-height:100vh;}
     /* Sidebar */
-    .sidebar {
-      width: var(--sidebar-w);
-      background: var(--surface);
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      padding: 20px 0;
-      flex-shrink: 0;
+    .sidebar{
+      width:var(--sidebar-w);background:var(--white);border-right:1px solid var(--border);
+      display:flex;flex-direction:column;padding:20px 0;flex-shrink:0;
     }
-    .sidebar-logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 0 20px 24px;
-      font-size: 1.15rem;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      text-decoration: none;
-      color: var(--text);
+    .sidebar-logo{
+      font-family:'Instrument Serif',serif;font-size:18px;color:var(--ink);
+      text-decoration:none;padding:0 20px 24px;display:block;
     }
-    .logo-icon {
-      width: 34px;
-      height: 34px;
-      background: var(--bg);
-      border-radius: 9px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: var(--shadow-soft);
-      font-size: 1.1rem;
+    .nav-item{
+      display:flex;align-items:center;gap:10px;padding:10px 20px;margin:0 8px;border-radius:8px;
+      color:var(--muted);text-decoration:none;font-size:13.5px;font-weight:400;
+      transition:all .15s;cursor:pointer;border:none;background:none;width:calc(100% - 16px);text-align:left;font-family:inherit;
     }
-    .nav-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 11px 20px;
-      color: var(--text-secondary);
-      text-decoration: none;
-      font-size: 0.95rem;
-      font-weight: 500;
-      transition: background 0.12s, color 0.12s;
-      border-left: 3px solid transparent;
+    .nav-item:hover{background:var(--off);color:var(--ink);}
+    .nav-item.active{background:var(--off);color:var(--ink);font-weight:500;}
+    .nav-item svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+    .sidebar-footer{margin-top:auto;padding:16px 16px 0;border-top:1px solid var(--border);}
+    .user-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:0 4px;}
+    .avatar{
+      width:34px;height:34px;border-radius:50%;background:var(--bg);border:1px solid var(--border);
+      display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--ink2);flex-shrink:0;
     }
-    .nav-item:hover {
-      background: var(--bg);
-      color: var(--text);
+    .user-meta{min-width:0;}
+    .user-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .user-role{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .btn-out{
+      width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--border);
+      background:transparent;font-size:12.5px;font-weight:500;color:var(--muted);
+      cursor:pointer;font-family:inherit;transition:all .15s;
     }
-    .nav-item.active {
-      background: rgba(26,115,232,0.08);
-      color: var(--accent);
-      border-left-color: var(--accent);
-    }
-    .nav-item span.icon { font-size: 1.15rem; width: 24px; text-align: center; }
-    .sidebar-footer {
-      margin-top: auto;
-      padding: 16px 20px 0;
-      border-top: 1px solid var(--border);
-    }
-    .user-info {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-    .avatar {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: var(--bg);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: var(--text-secondary);
-      box-shadow: var(--shadow-soft);
-    }
-    .user-name {
-      font-size: 0.9rem;
-      font-weight: 500;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 140px;
-    }
-    .user-email {
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 140px;
-    }
-    .btn-logout {
-      width: 100%;
-      padding: 9px 14px;
-      border-radius: 20px;
-      border: 1px solid var(--border);
-      background: transparent;
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: var(--text-secondary);
-      cursor: pointer;
-      font-family: inherit;
-      transition: background 0.15s, color 0.15s;
-    }
-    .btn-logout:hover {
-      background: var(--bg);
-      color: var(--text);
-    }
+    .btn-out:hover{background:var(--off);color:var(--ink);}
     /* Main */
-    .main {
-      flex: 1;
-      padding: 28px 32px;
-      overflow-y: auto;
+    .main{flex:1;padding:28px 32px;overflow-y:auto;}
+    .page-header{margin-bottom:28px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+    .page-header h1{font-family:'Instrument Serif',serif;font-size:28px;letter-spacing:-.5px;font-weight:400;}
+    .page-header p{font-size:14px;color:var(--muted);margin-top:4px;font-weight:300;}
+    .view{display:none;animation:fadeIn .35s ease;}
+    .view.active{display:block;}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+    /* Cards / stats */
+    .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:28px;}
+    .stat-card{
+      background:var(--white);border:1px solid var(--border);border-radius:12px;padding:18px 16px;
+      transition:box-shadow .2s;
     }
-    .page-header {
-      margin-bottom: 28px;
+    .stat-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.05);}
+    .stat-card .label{font-size:12px;color:var(--muted);margin-bottom:4px;}
+    .stat-card .value{font-size:26px;font-weight:600;letter-spacing:-.5px;}
+    /* Sections */
+    .panel{
+      background:var(--white);border:1px solid var(--border);border-radius:14px;
+      padding:24px;margin-bottom:20px;
     }
-    .page-header h1 {
-      font-size: 1.65rem;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      margin-bottom: 4px;
+    .panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:12px;flex-wrap:wrap;}
+    .panel-head h2{font-size:15px;font-weight:600;}
+    .btn-sm{
+      padding:7px 14px;border-radius:8px;font-size:12.5px;font-weight:500;font-family:inherit;
+      border:1px solid var(--border);background:var(--white);color:var(--ink2);cursor:pointer;transition:all .15s;
     }
-    .page-header p {
-      color: var(--text-secondary);
-      font-size: 0.95rem;
+    .btn-sm:hover{background:var(--off);border-color:#ccc;}
+    .btn-sm.primary{background:var(--ink);color:#fff;border-color:var(--ink);}
+    .btn-sm.primary:hover{background:#222;}
+    /* Calendar */
+    .cal-nav{display:flex;align-items:center;gap:12px;}
+    .cal-nav button{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--white);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;}
+    .cal-nav button:hover{background:var(--off);}
+    .cal-nav button svg{width:14px;height:14px;stroke:var(--ink2);fill:none;stroke-width:2;}
+    .cal-month{font-size:14px;font-weight:500;min-width:140px;text-align:center;}
+    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+    .cal-dow{font-size:11px;color:var(--muted);text-align:center;padding:6px 0;font-weight:500;}
+    .cal-day{
+      aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+      padding:6px 2px;border-radius:8px;font-size:13px;cursor:pointer;border:1px solid transparent;
+      transition:all .15s;position:relative;
     }
-    /* Cards grid */
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: 18px;
-      margin-bottom: 32px;
+    .cal-day:hover{background:var(--off);}
+    .cal-day.other{color:var(--muted);opacity:.5;}
+    .cal-day.today{background:rgba(26,107,245,.08);border-color:rgba(26,107,245,.25);font-weight:600;color:var(--accent);}
+    .cal-day.has-event::after{content:'';width:5px;height:5px;border-radius:50%;background:var(--accent);position:absolute;bottom:5px;}
+    .cal-day.selected{background:var(--ink);color:#fff;border-color:var(--ink);}
+    .cal-day.selected.has-event::after{background:#fff;}
+    .event-list{margin-top:16px;}
+    .event-item{
+      display:flex;align-items:flex-start;gap:12px;padding:12px;border-radius:10px;border:1px solid var(--border);
+      margin-bottom:8px;background:var(--off);transition:background .15s;
     }
-    .stat-card {
-      background: var(--surface);
-      border-radius: var(--radius);
-      padding: 22px 20px;
-      box-shadow: var(--shadow-card);
-      border: 1px solid rgba(232,234,237,0.8);
-      transition: box-shadow 0.2s;
+    .event-item:hover{background:var(--bg);}
+    .event-time{font-size:12px;color:var(--muted);min-width:70px;font-weight:500;}
+    .event-body{flex:1;}
+    .event-title{font-size:13.5px;font-weight:500;}
+    .event-meta{font-size:12px;color:var(--muted);margin-top:2px;}
+    .empty{font-size:13px;color:var(--muted);padding:12px 0;}
+    /* Tasks */
+    .task-form{display:flex;gap:8px;margin-bottom:16px;}
+    .task-form input{
+      flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:8px;
+      font-size:13.5px;font-family:inherit;background:var(--off);outline:none;transition:all .15s;
     }
-    .stat-card:hover { box-shadow: var(--shadow-elevated); }
-    .stat-card .label {
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-      margin-bottom: 6px;
+    .task-form input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,107,245,.1);background:var(--white);}
+    .task-item{
+      display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;
+      border:1px solid var(--border);margin-bottom:8px;background:var(--white);transition:all .15s;
     }
-    .stat-card .value {
-      font-size: 1.75rem;
-      font-weight: 600;
-      letter-spacing: -0.02em;
+    .task-item:hover{background:var(--off);}
+    .task-item.done .task-text{text-decoration:line-through;color:var(--muted);}
+    .task-check{
+      width:18px;height:18px;border-radius:5px;border:1.5px solid var(--border);
+      cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;
     }
-    .stat-card .hint {
-      font-size: 0.8rem;
-      color: var(--text-secondary);
-      margin-top: 6px;
+    .task-item.done .task-check{background:var(--ink);border-color:var(--ink);}
+    .task-item.done .task-check svg{opacity:1;}
+    .task-check svg{width:11px;height:11px;stroke:#fff;fill:none;stroke-width:2.5;opacity:0;}
+    .task-text{flex:1;font-size:13.5px;}
+    .task-del{background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;border-radius:4px;opacity:0;transition:opacity .15s;}
+    .task-item:hover .task-del{opacity:1;}
+    .task-del:hover{color:var(--ink);}
+    .task-del svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;}
+    /* Notes */
+    .note-form{margin-bottom:16px;}
+    .note-form textarea{
+      width:100%;min-height:80px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;
+      font-size:13.5px;font-family:inherit;background:var(--off);outline:none;resize:vertical;
+      transition:all .15s;margin-bottom:8px;
     }
-    /* Section */
-    .section {
-      background: var(--surface);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow-card);
-      border: 1px solid rgba(232,234,237,0.8);
-      padding: 24px;
-      margin-bottom: 24px;
+    .note-form textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,107,245,.1);background:var(--white);}
+    .note-card{
+      border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;
+      background:var(--white);transition:background .15s;
     }
-    .section h2 {
-      font-size: 1.1rem;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-      margin-bottom: 16px;
+    .note-card:hover{background:var(--off);}
+    .note-card p{font-size:13.5px;line-height:1.55;white-space:pre-wrap;}
+    .note-meta{font-size:11px;color:var(--muted);margin-top:8px;display:flex;justify-content:space-between;align-items:center;}
+    .note-del{background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;font-family:inherit;}
+    .note-del:hover{color:var(--ink);}
+    /* Members */
+    .member-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
+    .member-card{
+      border:1px solid var(--border);border-radius:12px;padding:18px;background:var(--white);
+      text-align:center;transition:box-shadow .2s;
     }
-    .placeholder {
-      color: var(--text-secondary);
-      font-size: 0.95rem;
-      line-height: 1.55;
-      padding: 12px 0;
+    .member-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.05);}
+    .member-av{
+      width:48px;height:48px;border-radius:50%;background:var(--bg);border:1px solid var(--border);
+      display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;color:var(--ink2);
+      margin:0 auto 10px;
     }
-    .member-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-    .member-chip {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--bg);
-      padding: 8px 14px 8px 8px;
-      border-radius: 24px;
-      box-shadow: var(--shadow-soft);
-      font-size: 0.9rem;
-    }
-    .member-chip .av {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background: var(--surface);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--text-secondary);
-    }
+    .member-name{font-size:14px;font-weight:500;}
+    .member-role{font-size:12px;color:var(--muted);margin-top:2px;}
+    .member-pronouns{font-size:11px;color:var(--muted);margin-top:4px;}
     /* Mobile */
-    .menu-toggle {
-      display: none;
-      position: fixed;
-      top: 16px;
-      left: 16px;
-      z-index: 30;
-      width: 42px;
-      height: 42px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      box-shadow: var(--shadow-soft);
-      cursor: pointer;
-      font-size: 1.2rem;
-      align-items: center;
-      justify-content: center;
+    .menu-toggle{
+      display:none;position:fixed;top:14px;left:14px;z-index:30;width:40px;height:40px;
+      border-radius:9px;border:1px solid var(--border);background:var(--white);cursor:pointer;
+      align-items:center;justify-content:center;
     }
-    @media (max-width: 768px) {
-      .menu-toggle { display: flex; }
-      .sidebar {
-        position: fixed;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        z-index: 20;
-        transform: translateX(-100%);
-        transition: transform 0.25s ease;
-        box-shadow: var(--shadow-elevated);
-      }
-      .sidebar.open { transform: translateX(0); }
-      .main { padding: 72px 20px 28px; }
+    .menu-toggle svg{width:18px;height:18px;stroke:var(--ink);fill:none;stroke-width:1.8;}
+    @media(max-width:768px){
+      .menu-toggle{display:flex;}
+      .sidebar{position:fixed;left:0;top:0;bottom:0;z-index:20;transform:translateX(-100%);transition:transform .25s ease;box-shadow:0 0 40px rgba(0,0,0,.1);}
+      .sidebar.open{transform:translateX(0);}
+      .main{padding:70px 18px 28px;}
     }
-    /* Loading / auth guard */
-    .auth-loading {
-      position: fixed;
-      inset: 0;
-      background: var(--bg);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 100;
-      font-size: 0.95rem;
-      color: var(--text-secondary);
+    .auth-loading{
+      position:fixed;inset:0;background:var(--off);display:flex;align-items:center;justify-content:center;
+      z-index:100;font-size:14px;color:var(--muted);
     }
-    .auth-loading.hidden { display: none; }
+    .auth-loading.hidden{display:none;}
   </style>
 </head>
 <body>
-  <div class="ambient" aria-hidden="true"></div>
   <div id="authLoading" class="auth-loading">Checking session…</div>
-
-  <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu">☰</button>
+  <button class="menu-toggle" id="menuToggle" aria-label="Menu">
+    <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
 
   <div class="layout">
     <aside class="sidebar" id="sidebar">
-      <a href="dash.html" class="sidebar-logo">
-        <span class="logo-icon">🏠</span>
-        FamilyHub
-      </a>
+      <a href="dash.html" class="sidebar-logo">FamilyHub</a>
       <nav>
-        <a href="dash.html" class="nav-item active"><span class="icon">📊</span> Dashboard</a>
-        <a href="#" class="nav-item"><span class="icon">📅</span> Calendar</a>
-        <a href="#" class="nav-item"><span class="icon">✅</span> Tasks</a>
-        <a href="#" class="nav-item"><span class="icon">📝</span> Notes</a>
-        <a href="#" class="nav-item"><span class="icon">👥</span> Members</a>
+        <button class="nav-item active" data-view="overview">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Dashboard
+        </button>
+        <button class="nav-item" data-view="calendar">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Calendar
+        </button>
+        <button class="nav-item" data-view="tasks">
+          <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          Tasks
+        </button>
+        <button class="nav-item" data-view="notes">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          Notes
+        </button>
+        <button class="nav-item" data-view="members">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+          Members
+        </button>
+        <a href="acc.html" class="nav-item">
+          <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Account
+        </a>
       </nav>
       <div class="sidebar-footer">
-        <div class="user-info">
+        <div class="user-row">
           <div class="avatar" id="userAvatar">?</div>
-          <div>
+          <div class="user-meta">
             <div class="user-name" id="userName">—</div>
-            <div class="user-email" id="userEmail">—</div>
+            <div class="user-role" id="userRole">—</div>
           </div>
         </div>
-        <button class="btn-logout" id="logoutBtn">Sign out</button>
+        <button class="btn-out" id="logoutBtn">Sign out</button>
       </div>
     </aside>
 
     <main class="main">
-      <div class="page-header">
-        <h1>Welcome back</h1>
-        <p>Here’s what’s happening with your family today.</p>
-      </div>
-
-      <div class="cards">
-        <div class="stat-card">
-          <div class="label">Family members</div>
-          <div class="value" id="memberCount">—</div>
-          <div class="hint">Added via Supabase</div>
+      <!-- OVERVIEW -->
+      <div class="view active" id="view-overview">
+        <div class="page-header">
+          <div>
+            <h1>Welcome back</h1>
+            <p>Here’s what’s happening with your family today.</p>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="label">Open tasks</div>
-          <div class="value">0</div>
-          <div class="hint">Coming soon</div>
+        <div class="cards">
+          <div class="stat-card"><div class="label">Members</div><div class="value" id="statMembers">0</div></div>
+          <div class="stat-card"><div class="label">Open tasks</div><div class="value" id="statTasks">0</div></div>
+          <div class="stat-card"><div class="label">Events this month</div><div class="value" id="statEvents">0</div></div>
+          <div class="stat-card"><div class="label">Notes</div><div class="value" id="statNotes">0</div></div>
         </div>
-        <div class="stat-card">
-          <div class="label">Upcoming events</div>
-          <div class="value">0</div>
-          <div class="hint">Coming soon</div>
+        <div class="panel">
+          <div class="panel-head"><h2>Today’s events</h2></div>
+          <div id="todayEvents" class="event-list"><p class="empty">No events for today.</p></div>
         </div>
-        <div class="stat-card">
-          <div class="label">Shared notes</div>
-          <div class="value">0</div>
-          <div class="hint">Coming soon</div>
+        <div class="panel">
+          <div class="panel-head"><h2>Open tasks</h2><button class="btn-sm" data-goto="tasks">View all</button></div>
+          <div id="overviewTasks"></div>
         </div>
       </div>
 
-      <div class="section">
-        <h2>Family members</h2>
-        <div class="member-list" id="memberList">
-          <p class="placeholder">Members will appear here once you query your Supabase <code>profiles</code> or <code>family_members</code> table.</p>
+      <!-- CALENDAR -->
+      <div class="view" id="view-calendar">
+        <div class="page-header">
+          <div>
+            <h1>Calendar</h1>
+            <p>Shared family schedule</p>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div class="cal-nav">
+              <button id="calPrev" aria-label="Previous month">
+                <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <span class="cal-month" id="calMonth"></span>
+              <button id="calNext" aria-label="Next month">
+                <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+            <button class="btn-sm primary" id="addEventBtn">Add event</button>
+          </div>
+          <div class="cal-grid" id="calGrid"></div>
+          <div class="event-list" id="dayEvents">
+            <p class="empty">Select a day to see or add events.</p>
+          </div>
         </div>
       </div>
 
-      <div class="section">
-        <h2>Quick start</h2>
-        <p class="placeholder">
-          This dashboard is ready for you to connect real data.<br>
-          1. Create tables in Supabase (e.g. <code>family_members</code>, <code>tasks</code>, <code>events</code>, <code>notes</code>).<br>
-          2. Enable Row Level Security and policies so only authenticated family members can read/write.<br>
-          3. Replace the placeholder queries in this page’s script with your real fetches.
-        </p>
+      <!-- TASKS -->
+      <div class="view" id="view-tasks">
+        <div class="page-header">
+          <div>
+            <h1>Tasks</h1>
+            <p>Household chores and to-dos</p>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="task-form">
+            <input type="text" id="taskInput" placeholder="Add a new task…" maxlength="120">
+            <button class="btn-sm primary" id="addTaskBtn">Add</button>
+          </div>
+          <div id="taskList"></div>
+        </div>
+      </div>
+
+      <!-- NOTES -->
+      <div class="view" id="view-notes">
+        <div class="page-header">
+          <div>
+            <h1>Notes</h1>
+            <p>Shared lists and reminders</p>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="note-form">
+            <textarea id="noteInput" placeholder="Write a note…"></textarea>
+            <button class="btn-sm primary" id="addNoteBtn">Save note</button>
+          </div>
+          <div id="noteList"></div>
+        </div>
+      </div>
+
+      <!-- MEMBERS -->
+      <div class="view" id="view-members">
+        <div class="page-header">
+          <div>
+            <h1>Members</h1>
+            <p>Your family</p>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="member-grid" id="memberGrid"></div>
+        </div>
       </div>
     </main>
   </div>
 
   <script>
-    // ─── REPLACE THESE WITH YOUR SUPABASE PROJECT VALUES ───
-    const SUPABASE_URL = 'https://bwzfzeazmnppgndysqky.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3emZ6ZWF6bW5wcGduZHlzcWt5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0ODUxNDcsImV4cCI6MjEwNjA2MTE0N30.OYjsU24HCcAmj_GKpqCWNsGgekwDJsCm3MKLuGlbiLo';
-    // ───────────────────────────────────────────────────────
+    // ─── REPLACE WITH YOUR SUPABASE VALUES ───
+    const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
+    const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
+    // ─────────────────────────────────────────
 
     const { createClient } = supabase;
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    // Local storage helpers (demo data until you wire real tables)
+    const store = {
+      get(key, fallback) {
+        try { return JSON.parse(localStorage.getItem('fh_' + key)) ?? fallback; }
+        catch { return fallback; }
+      },
+      set(key, val) { localStorage.setItem('fh_' + key, JSON.stringify(val)); }
+    };
+
+    // Seed demo data if empty
+    if (!store.get('events')) {
+      const now = new Date();
+      store.set('events', [
+        { id: 1, title: 'Family dinner', date: isoDate(now), time: '19:00', note: 'At home' },
+        { id: 2, title: 'School pickup', date: isoDate(new Date(now.getTime() + 86400000)), time: '15:30', note: '' }
+      ]);
+    }
+    if (!store.get('tasks')) {
+      store.set('tasks', [
+        { id: 1, text: 'Buy groceries', done: false },
+        { id: 2, text: 'Call the dentist', done: false },
+        { id: 3, text: 'Water the plants', done: true }
+      ]);
+    }
+    if (!store.get('notes')) {
+      store.set('notes', [
+        { id: 1, text: 'Wi-Fi password is on the fridge.', created: Date.now() - 86400000 },
+        { id: 2, text: 'Remember to book tickets for the weekend trip.', created: Date.now() }
+      ]);
+    }
+    if (!store.get('members')) {
+      store.set('members', [
+        { id: 1, name: 'Alex', role: 'Parent', pronouns: 'they/them', designation: 'Admin' },
+        { id: 2, name: 'Sam', role: 'Parent', pronouns: 'she/her', designation: 'Member' },
+        { id: 3, name: 'Jordan', role: 'Child', pronouns: 'he/him', designation: 'Member' }
+      ]);
+    }
+
+    function isoDate(d) {
+      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    }
+
+    // Auth
     const authLoading = document.getElementById('authLoading');
-    const userNameEl = document.getElementById('userName');
-    const userEmailEl = document.getElementById('userEmail');
-    const userAvatarEl = document.getElementById('userAvatar');
-    const logoutBtn = document.getElementById('logoutBtn');
-    const menuToggle = document.getElementById('menuToggle');
-    const sidebar = document.getElementById('sidebar');
+    let currentUser = null;
 
-    // Mobile menu
-    menuToggle.addEventListener('click', () => {
-      sidebar.classList.toggle('open');
-    });
-    document.addEventListener('click', (e) => {
-      if (window.innerWidth <= 768 && !sidebar.contains(e.target) && e.target !== menuToggle) {
-        sidebar.classList.remove('open');
-      }
-    });
-
-    // Auth guard + load user
     (async () => {
-      const { data: { session }, error } = await supabaseClient.auth.getSession();
-      if (error || !session) {
-        window.location.href = 'login.html';
-        return;
-      }
-
-      const user = session.user;
-      const email = user.email || '';
-      const name = user.user_metadata?.full_name || email.split('@')[0] || 'Family member';
-      const initial = (name[0] || '?').toUpperCase();
-
-      userNameEl.textContent = name;
-      userEmailEl.textContent = email;
-      userAvatarEl.textContent = initial;
-
-      // Optional: try to load member count from a table (fails gracefully if table doesn't exist)
-      try {
-        const { count } = await supabaseClient
-          .from('family_members')
-          .select('*', { count: 'exact', head: true });
-        if (typeof count === 'number') {
-          document.getElementById('memberCount').textContent = count;
-        } else {
-          document.getElementById('memberCount').textContent = '—';
-        }
-      } catch (_) {
-        document.getElementById('memberCount').textContent = '—';
-      }
-
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) { window.location.href = 'login.html'; return; }
+      currentUser = session.user;
+      const profile = store.get('profile', {});
+      const name = profile.fullName || currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'Member';
+      const role = profile.role || profile.designation || 'Member';
+      document.getElementById('userName').textContent = name;
+      document.getElementById('userRole').textContent = role;
+      document.getElementById('userAvatar').textContent = (name[0] || '?').toUpperCase();
       authLoading.classList.add('hidden');
+      renderAll();
     })();
 
-    // Logout
-    logoutBtn.addEventListener('click', async () => {
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
       await supabaseClient.auth.signOut();
       window.location.href = 'login.html';
     });
-
-    // Listen for auth changes (e.g. token refresh failure)
     supabaseClient.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT' || !session) {
-        window.location.href = 'login.html';
-      }
+      if (event === 'SIGNED_OUT' || !session) window.location.href = 'login.html';
     });
+
+    // Navigation
+    document.querySelectorAll('.nav-item[data-view]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById('view-' + btn.dataset.view).classList.add('active');
+        if (btn.dataset.view === 'calendar') renderCalendar();
+      });
+    });
+    document.querySelectorAll('[data-goto]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const v = btn.dataset.goto;
+        document.querySelector(`.nav-item[data-view="${v}"]`)?.click();
+      });
+    });
+
+    // Mobile menu
+    document.getElementById('menuToggle').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('open');
+    });
+
+    // ─── CALENDAR ───
+    let calDate = new Date();
+    let selectedDate = isoDate(new Date());
+
+    function renderCalendar() {
+      const year = calDate.getFullYear();
+      const month = calDate.getMonth();
+      document.getElementById('calMonth').textContent =
+        calDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+      const first = new Date(year, month, 1);
+      const startDay = first.getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const prevDays = new Date(year, month, 0).getDate();
+
+      const events = store.get('events', []);
+      const eventDates = new Set(events.map(e => e.date));
+
+      const grid = document.getElementById('calGrid');
+      grid.innerHTML = '';
+      ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => {
+        const el = document.createElement('div');
+        el.className = 'cal-dow';
+        el.textContent = d;
+        grid.appendChild(el);
+      });
+
+      for (let i = 0; i < startDay; i++) {
+        const day = prevDays - startDay + i + 1;
+        const el = document.createElement('div');
+        el.className = 'cal-day other';
+        el.textContent = day;
+        grid.appendChild(el);
+      }
+
+      const todayStr = isoDate(new Date());
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = year + '-' + String(month+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+        const el = document.createElement('div');
+        el.className = 'cal-day';
+        if (dateStr === todayStr) el.classList.add('today');
+        if (dateStr === selectedDate) el.classList.add('selected');
+        if (eventDates.has(dateStr)) el.classList.add('has-event');
+        el.textContent = d;
+        el.addEventListener('click', () => {
+          selectedDate = dateStr;
+          renderCalendar();
+          renderDayEvents();
+        });
+        grid.appendChild(el);
+      }
+
+      const totalCells = startDay + daysInMonth;
+      const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+      for (let i = 1; i <= remaining; i++) {
+        const el = document.createElement('div');
+        el.className = 'cal-day other';
+        el.textContent = i;
+        grid.appendChild(el);
+      }
+      renderDayEvents();
+    }
+
+    function renderDayEvents() {
+      const events = store.get('events', []).filter(e => e.date === selectedDate)
+        .sort((a,b) => (a.time || '').localeCompare(b.time || ''));
+      const box = document.getElementById('dayEvents');
+      if (!events.length) {
+        box.innerHTML = '<p class="empty">No events on this day. Click “Add event” to create one.</p>';
+        return;
+      }
+      box.innerHTML = events.map(e => `
+        <div class="event-item">
+          <div class="event-time">${e.time || 'All day'}</div>
+          <div class="event-body">
+            <div class="event-title">${esc(e.title)}</div>
+            ${e.note ? `<div class="event-meta">${esc(e.note)}</div>` : ''}
+          </div>
+          <button class="btn-sm" onclick="deleteEvent(${e.id})">Remove</button>
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('calPrev').addEventListener('click', () => {
+      calDate.setMonth(calDate.getMonth() - 1);
+      renderCalendar();
+    });
+    document.getElementById('calNext').addEventListener('click', () => {
+      calDate.setMonth(calDate.getMonth() + 1);
+      renderCalendar();
+    });
+
+    document.getElementById('addEventBtn').addEventListener('click', () => {
+      const title = prompt('Event title');
+      if (!title || !title.trim()) return;
+      const time = prompt('Time (e.g. 14:30) or leave blank for all day', '') || '';
+      const note = prompt('Optional note', '') || '';
+      const events = store.get('events', []);
+      events.push({ id: Date.now(), title: title.trim(), date: selectedDate, time: time.trim(), note: note.trim() });
+      store.set('events', events);
+      renderCalendar();
+      updateStats();
+    });
+
+    window.deleteEvent = function(id) {
+      let events = store.get('events', []);
+      events = events.filter(e => e.id !== id);
+      store.set('events', events);
+      renderCalendar();
+      updateStats();
+    };
+
+    // ─── TASKS ───
+    function renderTasks() {
+      const tasks = store.get('tasks', []);
+      const list = document.getElementById('taskList');
+      const overview = document.getElementById('overviewTasks');
+      if (!tasks.length) {
+        list.innerHTML = '<p class="empty">No tasks yet.</p>';
+        overview.innerHTML = '<p class="empty">No open tasks.</p>';
+        return;
+      }
+      list.innerHTML = tasks.map(t => `
+        <div class="task-item ${t.done ? 'done' : ''}">
+          <div class="task-check" onclick="toggleTask(${t.id})">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <span class="task-text">${esc(t.text)}</span>
+          <button class="task-del" onclick="deleteTask(${t.id})" aria-label="Delete">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      `).join('');
+
+      const open = tasks.filter(t => !t.done);
+      overview.innerHTML = open.length
+        ? open.slice(0, 4).map(t => `<div class="task-item"><span class="task-text">${esc(t.text)}</span></div>`).join('')
+        : '<p class="empty">No open tasks.</p>';
+    }
+
+    document.getElementById('addTaskBtn').addEventListener('click', addTask);
+    document.getElementById('taskInput').addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
+
+    function addTask() {
+      const input = document.getElementById('taskInput');
+      const text = input.value.trim();
+      if (!text) return;
+      const tasks = store.get('tasks', []);
+      tasks.unshift({ id: Date.now(), text, done: false });
+      store.set('tasks', tasks);
+      input.value = '';
+      renderTasks();
+      updateStats();
+    }
+
+    window.toggleTask = function(id) {
+      const tasks = store.get('tasks', []);
+      const t = tasks.find(x => x.id === id);
+      if (t) t.done = !t.done;
+      store.set('tasks', tasks);
+      renderTasks();
+      updateStats();
+    };
+
+    window.deleteTask = function(id) {
+      let tasks = store.get('tasks', []);
+      tasks = tasks.filter(t => t.id !== id);
+      store.set('tasks', tasks);
+      renderTasks();
+      updateStats();
+    };
+
+    // ─── NOTES ───
+    function renderNotes() {
+      const notes = store.get('notes', []).sort((a,b) => b.created - a.created);
+      const list = document.getElementById('noteList');
+      if (!notes.length) {
+        list.innerHTML = '<p class="empty">No notes yet.</p>';
+        return;
+      }
+      list.innerHTML = notes.map(n => `
+        <div class="note-card">
+          <p>${esc(n.text)}</p>
+          <div class="note-meta">
+            <span>${new Date(n.created).toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' })}</span>
+            <button class="note-del" onclick="deleteNote(${n.id})">Remove</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('addNoteBtn').addEventListener('click', () => {
+      const input = document.getElementById('noteInput');
+      const text = input.value.trim();
+      if (!text) return;
+      const notes = store.get('notes', []);
+      notes.unshift({ id: Date.now(), text, created: Date.now() });
+      store.set('notes', notes);
+      input.value = '';
+      renderNotes();
+      updateStats();
+    });
+
+    window.deleteNote = function(id) {
+      let notes = store.get('notes', []);
+      notes = notes.filter(n => n.id !== id);
+      store.set('notes', notes);
+      renderNotes();
+      updateStats();
+    };
+
+    // ─── MEMBERS ───
+    function renderMembers() {
+      const members = store.get('members', []);
+      const grid = document.getElementById('memberGrid');
+      if (!members.length) {
+        grid.innerHTML = '<p class="empty">No members yet. Add them via Supabase or the Account page profile.</p>';
+        return;
+      }
+      grid.innerHTML = members.map(m => `
+        <div class="member-card">
+          <div class="member-av">${(m.name[0] || '?').toUpperCase()}</div>
+          <div class="member-name">${esc(m.name)}</div>
+          <div class="member-role">${esc(m.role || m.designation || 'Member')}</div>
+          ${m.pronouns ? `<div class="member-pronouns">${esc(m.pronouns)}</div>` : ''}
+        </div>
+      `).join('');
+    }
+
+    // Stats + today events
+    function updateStats() {
+      document.getElementById('statMembers').textContent = store.get('members', []).length;
+      document.getElementById('statTasks').textContent = store.get('tasks', []).filter(t => !t.done).length;
+      const thisMonth = isoDate(new Date()).slice(0, 7);
+      document.getElementById('statEvents').textContent = store.get('events', []).filter(e => e.date.startsWith(thisMonth)).length;
+      document.getElementById('statNotes').textContent = store.get('notes', []).length;
+
+      const today = isoDate(new Date());
+      const todayEv = store.get('events', []).filter(e => e.date === today);
+      const box = document.getElementById('todayEvents');
+      box.innerHTML = todayEv.length
+        ? todayEv.map(e => `
+            <div class="event-item">
+              <div class="event-time">${e.time || 'All day'}</div>
+              <div class="event-body">
+                <div class="event-title">${esc(e.title)}</div>
+                ${e.note ? `<div class="event-meta">${esc(e.note)}</div>` : ''}
+              </div>
+            </div>
+          `).join('')
+        : '<p class="empty">No events for today.</p>';
+    }
+
+    function esc(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    function renderAll() {
+      renderTasks();
+      renderNotes();
+      renderMembers();
+      updateStats();
+      renderCalendar();
+    }
   </script>
 </body>
 </html>
