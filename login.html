@@ -70,70 +70,91 @@
       if (session) window.location.href = 'dash.html';
     })();
 
+    
     async function logLogin(user) {
       try {
         let ip = '', city = '', region = '', country = '';
-        // Try multiple free geo APIs (CORS-friendly)
-        const apis = [
+
+        // 1) Get public IP first (very reliable)
+        try {
+          const r = await fetch('https://api.ipify.org?format=json', { cache: 'no-store' });
+          if (r.ok) {
+            const j = await r.json();
+            ip = j.ip || '';
+          }
+        } catch (_) {}
+
+        // 2) Geo lookup with multiple free endpoints
+        const geoTries = [
           async () => {
-            const r = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(3500) });
-            if (!r.ok) throw new Error('ipapi');
+            const r = await fetch('https://ipwho.is/' + (ip ? ip : ''), { cache: 'no-store' });
+            if (!r.ok) throw 0;
             const g = await r.json();
-            return { ip: g.ip, city: g.city, region: g.region, country: g.country_name || g.country };
+            if (g.success === false) throw 0;
+            return { ip: g.ip || ip, city: g.city, region: g.region, country: g.country };
           },
           async () => {
-            const r = await fetch('https://ipwho.is/', { signal: AbortSignal.timeout(3500) });
-            if (!r.ok) throw new Error('ipwho');
+            const r = await fetch('https://ipapi.co/' + (ip ? ip + '/' : '') + 'json/', { cache: 'no-store' });
+            if (!r.ok) throw 0;
             const g = await r.json();
-            if (g.success === false) throw new Error('ipwho fail');
-            return { ip: g.ip, city: g.city, region: g.region, country: g.country };
+            if (g.error) throw 0;
+            return { ip: g.ip || ip, city: g.city, region: g.region, country: g.country_name || g.country };
           },
           async () => {
-            const r = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(3000) });
-            if (!r.ok) throw new Error('ipify');
+            // free no-key JSON via geojs
+            const r = await fetch('https://get.geojs.io/v1/ip/geo/' + (ip ? ip + '.json' : '.json'), { cache: 'no-store' });
+            if (!r.ok) throw 0;
             const g = await r.json();
-            return { ip: g.ip, city: '', region: '', country: '' };
+            return { ip: g.ip || ip, city: g.city, region: g.region, country: g.country };
           }
         ];
-        for (const fn of apis) {
+
+        for (const fn of geoTries) {
           try {
             const g = await fn();
-            if (g && g.ip) {
-              ip = g.ip || '';
+            if (g) {
+              ip = g.ip || ip;
               city = g.city || city;
               region = g.region || region;
               country = g.country || country;
-              if (ip) break;
+              if (ip && (city || country)) break;
             }
           } catch (_) {}
         }
-        // Parse a simple device string from UA
-        const ua = navigator.userAgent || '';
-        let device = 'Unknown device';
-        if (/iPhone|iPad/.test(ua)) device = 'Apple iOS';
-        else if (/Android/.test(ua)) device = 'Android';
-        else if (/Mac OS X|Macintosh/.test(ua)) device = 'Mac';
-        else if (/Windows/.test(ua)) device = 'Windows';
-        else if (/Linux/.test(ua)) device = 'Linux';
-        if (/Mobile|Android.*Mobile|iPhone/.test(ua)) device += ' · Mobile';
-        else if (/iPad|Tablet/.test(ua)) device += ' · Tablet';
-        else device += ' · Desktop';
-        const browser = /Edg\//.test(ua) ? 'Edge' : /Chrome\//.test(ua) ? 'Chrome' : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : 'Browser';
-        device = browser + ' · ' + device;
 
-        await supabaseClient.from('login_logs').insert({
+        // Device string
+        const ua = navigator.userAgent || '';
+        let os = 'Unknown OS';
+        if (/Windows NT/i.test(ua)) os = 'Windows';
+        else if (/Mac OS X|Macintosh/i.test(ua)) os = 'macOS';
+        else if (/Android/i.test(ua)) os = 'Android';
+        else if (/iPhone|iPad|iPod/i.test(ua)) os = 'iOS';
+        else if (/Linux/i.test(ua)) os = 'Linux';
+        let form = /Mobile|Android.*Mobile|iPhone/i.test(ua) ? 'Mobile' : (/iPad|Tablet/i.test(ua) ? 'Tablet' : 'Desktop');
+        let browser = 'Browser';
+        if (/Edg\//i.test(ua)) browser = 'Edge';
+        else if (/Chrome\//i.test(ua) && !/Edg\//i.test(ua)) browser = 'Chrome';
+        else if (/Firefox\//i.test(ua)) browser = 'Firefox';
+        else if (/Safari\//i.test(ua) && !/Chrome\//i.test(ua)) browser = 'Safari';
+        const device = browser + ' · ' + os + ' · ' + form;
+
+        const row = {
           user_id: user.id,
           email: user.email,
-          ip_address: ip || 'unavailable',
+          ip_address: ip || 'unavailable (browser blocked geo APIs)',
           city: city || null,
           region: region || null,
           country: country || null,
           user_agent: device
-        });
+        };
+        console.log('Login log payload', row);
+        const { error } = await supabaseClient.from('login_logs').insert(row);
+        if (error) console.warn('login_logs insert error', error);
       } catch (e) {
         console.warn('Could not write login log', e);
       }
     }
+
 
     const form = document.getElementById('loginForm');
     const errorEl = document.getElementById('error');

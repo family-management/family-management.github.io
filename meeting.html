@@ -190,126 +190,230 @@ document.getElementById('addMeeting').onclick=async()=>{
 };
 window.deleteMeeting=async(id)=>{if(!isAdmin||!confirm('Remove?'))return;await sb.from('meetings').delete().eq('id',id);await logAct('deleted_meeting','meeting',id,'Deleted meeting');await loadMeetings();};
 
-// ─── WebRTC voice room (mesh via Supabase Realtime) ───
+// ─── WebRTC voice room (mesh + Supabase Realtime signaling) ───
 const ROOM = 'family-voice';
+const ICE = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun.cloudflare.com:3478' }
+  ]
+};
+
 window.joinCall = (title) => startCall(title || 'Family voice room');
 document.getElementById('startCallBtn').onclick = () => startCall('Family voice room');
 
-async function startCall(title){
-  try{
-    localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-  }catch(e){
-    alert('Microphone access is required for voice calls.');
+async function startCall(title) {
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      video: false
+    });
+  } catch (e) {
+    alert('Microphone permission is required. Allow the mic and try again.\n\n' + (e.message || e));
     return;
   }
+
   document.getElementById('callTitle').textContent = title;
   document.getElementById('callOverlay').classList.add('open');
   callStart = Date.now();
-  timerIv = setInterval(()=>{
-    const s=Math.floor((Date.now()-callStart)/1000);
-    document.getElementById('callTimer').textContent = String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
-  },1000);
-  renderStage();
+  clearInterval(timerIv);
+  timerIv = setInterval(() => {
+    const s = Math.floor((Date.now() - callStart) / 1000);
+    document.getElementById('callTimer').textContent =
+      String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+  }, 1000);
 
-  channel = sb.channel(ROOM, { config: { presence: { key: currentUser.id } } });
+  // Clean previous
+  Object.keys(peers).forEach(closePeer);
+  peers = {};
+  if (channel) { try { await sb.removeChannel(channel); } catch (_) {} channel = null; }
+
+  channel = sb.channel(ROOM, { config: { presence: { key: currentUser.id }, broadcast: { self: false } } });
+
   channel.on('presence', { event: 'sync' }, () => {
     const state = channel.presenceState();
-    Object.keys(state).forEach(uid => {
-      if(uid === currentUser.id) return;
-      if(!peers[uid]) createPeer(uid, true);
+    const online = Object.keys(state);
+    // Connect to new peers (only lower id initiates to avoid glare)
+    online.forEach(uid => {
+      if (uid === currentUser.id) return;
+      if (!peers[uid]) {
+        const initiator = currentUser.id < uid;
+        createPeer(uid, initiator);
+      }
     });
-    // remove left
-    Object.keys(peers).forEach(uid => { if(!state[uid]) closePeer(uid); });
+    // Close left peers
+    Object.keys(peers).forEach(uid => {
+      if (!online.includes(uid)) closePeer(uid);
+    });
     renderStage();
   });
-  channel.on('broadcast', { event: 'signal' }, ({ payload }) => {
-    if(payload.to !== currentUser.id) return;
-    handleSignal(payload.from, payload.data);
+
+  channel.on('broadcast', { event: 'signal' }, async ({ payload }) => {
+    if (!payload || payload.to !== currentUser.id) return;
+    try { await handleSignal(payload.from, payload.data); } catch (e) { console.warn('signal error', e); }
   });
-  await channel.subscribe(async (status) => {
-    if(status === 'SUBSCRIBED'){
-      await channel.track({ name: displayName, email: currentUser.email });
-    }
+
+  const status = await new Promise(resolve => {
+    channel.subscribe((s) => { if (s === 'SUBSCRIBED' || s === 'CHANNEL_ERROR') resolve(s); });
   });
-  await logAct('joined_call','meeting',null,`Joined voice: ${title}`);
+  if (status !== 'SUBSCRIBED') {
+    alert('Could not connect to the voice room channel. Check your network.');
+    return;
+  }
+  await channel.track({ name: displayName, email: currentUser.email, joined: Date.now() });
+  renderStage();
+  await logAct('joined_call', 'meeting', null, 'Joined voice: ' + title);
 }
 
-function createPeer(remoteId, initiator){
-  const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-  peers[remoteId] = { pc, stream: null };
+function createPeer(remoteId, initiator) {
+  if (peers[remoteId]) return;
+  const pc = new RTCPeerConnection(ICE);
+  peers[remoteId] = { pc, stream: null, polite: !initiator };
+
   localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+
   pc.ontrack = (e) => {
-    peers[remoteId].stream = e.streams[0];
+    const stream = e.streams[0] || new MediaStream([e.track]);
+    peers[remoteId].stream = stream;
+    attachAudio(remoteId, stream);
     renderStage();
   };
+
   pc.onicecandidate = (e) => {
-    if(e.candidate) sendSignal(remoteId, { type: 'candidate', candidate: e.candidate });
+    if (e.candidate) {
+      sendSignal(remoteId, { type: 'candidate', candidate: e.candidate });
+    }
   };
-  if(initiator){
-    pc.createOffer().then(offer => pc.setLocalDescription(offer)).then(() => {
-      sendSignal(remoteId, { type: 'offer', sdp: pc.localDescription });
-    });
+
+  pc.onconnectionstatechange = () => {
+    const st = pc.connectionState;
+    console.log('PC', remoteId, st);
+    if (st === 'failed' || st === 'closed' || st === 'disconnected') {
+      // soft recovery
+      if (st === 'failed') {
+        try { pc.restartIce(); } catch (_) {}
+      }
+    }
+    renderStage();
+  };
+
+  if (initiator) {
+    pc.createOffer({ offerToReceiveAudio: true })
+      .then(offer => pc.setLocalDescription(offer))
+      .then(() => sendSignal(remoteId, { type: 'offer', sdp: pc.localDescription }))
+      .catch(e => console.warn('offer failed', e));
   }
 }
 
-async function handleSignal(from, data){
-  if(!peers[from]) createPeer(from, false);
-  const pc = peers[from].pc;
-  if(data.type === 'offer'){
+async function handleSignal(from, data) {
+  if (!data) return;
+  if (!peers[from]) createPeer(from, false);
+  const entry = peers[from];
+  const pc = entry.pc;
+
+  if (data.type === 'offer') {
     await pc.setRemoteDescription(data.sdp);
-    const ans = await pc.createAnswer();
-    await pc.setLocalDescription(ans);
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
     sendSignal(from, { type: 'answer', sdp: pc.localDescription });
-  } else if(data.type === 'answer'){
-    await pc.setRemoteDescription(data.sdp);
-  } else if(data.type === 'candidate' && data.candidate){
-    try{ await pc.addIceCandidate(data.candidate); }catch(_){}
+  } else if (data.type === 'answer') {
+    if (pc.signalingState !== 'stable') {
+      await pc.setRemoteDescription(data.sdp);
+    }
+  } else if (data.type === 'candidate' && data.candidate) {
+    try {
+      await pc.addIceCandidate(data.candidate);
+    } catch (e) {
+      console.warn('ICE add failed', e);
+    }
   }
 }
 
-function sendSignal(to, data){
-  channel.send({ type: 'broadcast', event: 'signal', payload: { from: currentUser.id, to, data } });
+function sendSignal(to, data) {
+  if (!channel) return;
+  channel.send({
+    type: 'broadcast',
+    event: 'signal',
+    payload: { from: currentUser.id, to, data }
+  });
 }
 
-function closePeer(uid){
-  if(peers[uid]){ peers[uid].pc.close(); delete peers[uid]; }
+function attachAudio(uid, stream) {
+  let audio = document.getElementById('audio-' + uid);
+  if (!audio) {
+    audio = document.createElement('audio');
+    audio.id = 'audio-' + uid;
+    audio.autoplay = true;
+    audio.playsInline = true;
+    audio.setAttribute('playsinline', '');
+    document.body.appendChild(audio);
+  }
+  audio.srcObject = stream;
+  // browsers often block autoplay without user gesture — we already have gesture from Join
+  const p = audio.play();
+  if (p && p.catch) p.catch(() => {
+    // retry once
+    setTimeout(() => audio.play().catch(() => {}), 300);
+  });
+}
+
+function closePeer(uid) {
+  if (peers[uid]) {
+    try { peers[uid].pc.close(); } catch (_) {}
+    delete peers[uid];
+  }
+  const a = document.getElementById('audio-' + uid);
+  if (a) a.remove();
   renderStage();
 }
 
-function renderStage(){
+function renderStage() {
   const stage = document.getElementById('callStage');
-  let html = `<div class="participant speaking" id="selfTile"><div class="av">${(displayName[0]||'?').toUpperCase()}</div><div class="name">${esc(displayName)} (you)</div><div class="status">${muted?'Muted':'Mic on'}</div></div>`;
-  Object.entries(peers).forEach(([uid,p])=>{
-    const name = (channel?.presenceState()?.[uid]?.[0]?.name) || 'Member';
-    html += `<div class="participant" id="peer-${uid}"><div class="av">${(name[0]||'?').toUpperCase()}</div><div class="name">${esc(name)}</div><div class="status">Connected</div></div>`;
-    // attach audio
-    setTimeout(()=>{
-      if(p.stream){
-        let audio = document.getElementById('audio-'+uid);
-        if(!audio){ audio=document.createElement('audio'); audio.id='audio-'+uid; audio.autoplay=true; document.body.appendChild(audio); }
-        audio.srcObject = p.stream;
-      }
-    },50);
+  let html = `<div class="participant ${muted ? '' : 'speaking'}" id="selfTile">
+    <div class="av">${(displayName[0] || '?').toUpperCase()}</div>
+    <div class="name">${esc(displayName)} (you)</div>
+    <div class="status">${muted ? 'Muted' : 'Mic on'}</div>
+  </div>`;
+  Object.entries(peers).forEach(([uid, p]) => {
+    const meta = channel?.presenceState()?.[uid];
+    const name = (meta && meta[0] && meta[0].name) || 'Member';
+    const st = p.pc.connectionState || 'new';
+    html += `<div class="participant ${st === 'connected' ? 'speaking' : ''}" id="peer-${uid}">
+      <div class="av">${(name[0] || '?').toUpperCase()}</div>
+      <div class="name">${esc(name)}</div>
+      <div class="status">${st}</div>
+    </div>`;
+    if (p.stream) attachAudio(uid, p.stream);
   });
   stage.innerHTML = html;
 }
 
 document.getElementById('micBtn').onclick = () => {
   muted = !muted;
-  if(localStream) localStream.getAudioTracks().forEach(t => t.enabled = !muted);
+  if (localStream) localStream.getAudioTracks().forEach(t => { t.enabled = !muted; });
   document.getElementById('micBtn').classList.toggle('off', muted);
   renderStage();
 };
 
 document.getElementById('leaveBtn').onclick = async () => {
-  if(localStream){ localStream.getTracks().forEach(t=>t.stop()); localStream=null; }
+  if (localStream) {
+    localStream.getTracks().forEach(t => t.stop());
+    localStream = null;
+  }
   Object.keys(peers).forEach(closePeer);
-  if(channel){ await channel.unsubscribe(); channel=null; }
-  document.querySelectorAll('audio').forEach(a=>a.remove());
+  peers = {};
+  if (channel) {
+    try { await channel.untrack(); } catch (_) {}
+    try { await sb.removeChannel(channel); } catch (_) {}
+    channel = null;
+  }
+  document.querySelectorAll('audio[id^="audio-"]').forEach(a => a.remove());
   clearInterval(timerIv);
   document.getElementById('callOverlay').classList.remove('open');
-  await logAct('left_call','meeting',null,'Left voice room');
+  await logAct('left_call', 'meeting', null, 'Left voice room');
 };
+
 </script>
 </body>
 </html>
