@@ -1,261 +1,280 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Family • Home</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;display=swap');
-        
-        :root {
-            --bg: #0a0a0a;
-            --text: #f1f1f1;
-            --accent: #00d4ff;
-            --fog: rgba(0, 212, 255, 0.06);
-            --fog-border: rgba(0, 212, 255, 0.25);
-        }
-        
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body {
-            font-family: 'Inter', system_ui, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            overflow-x: hidden;
-            height: 100vh;
-            position: relative;
-        }
-        
-        body::before {
-            content: '';
-            position: fixed;
-            top:0; left:0; right:0; bottom:0;
-            background: radial-gradient(circle at 15% 30%, var(--fog) 0%, transparent 45%),
-                        radial-gradient(circle at 85% 70%, var(--fog) 0%, transparent 50%);
-            pointer-events: none;
-            z-index: 1;
-            opacity: 0.85;
-        }
-        body::after {
-            content: '';
-            position: fixed;
-            top:0; left:0; right:0; bottom:0;
-            background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.03) 0%, transparent 40%),
-                        radial-gradient(circle at 70% 80%, rgba(255,255,255,0.02) 0%, transparent 45%);
-            pointer-events: none;
-            z-index: 1;
-            opacity: 0.4;
-        }
-        .side-fog {
-            position: fixed; top:0; bottom:0; width:2px;
-            background: linear-gradient(transparent, var(--fog-border), transparent);
-            z-index: 2;
-            pointer-events: none;
-            box-shadow: 0 0 20px rgba(0,212,255,0.15);
-        }
-        .left-fog { left:0; }
-        .right-fog { right:0; }
-        
-        header {
-            position: fixed; top:0; left:0; right:0; z-index:50;
-            padding:1.25rem 5%; display:flex; align-items:center; justify-content:space-between;
-            backdrop-filter:blur(12px); background:rgba(10,10,10,0.75);
-        }
-        .logo {
-            font-family:'Space Grotesk',sans-serif;
-            font-size:1.85rem;
-            font-weight:600;
-            letter-spacing:-0.02em;
-            background:linear-gradient(90deg,var(--accent),#fff);
-            -webkit-background-clip:text;
-            -webkit-text-fill-color:transparent;
-        }
-        .nav-links {
-            display:flex; gap:2.5rem; list-style:none;
-        }
-        .nav-links a {
-            text-decoration:none; color:var(--text); font-weight:500;
-            transition:color .3s;
-        }
-        .nav-links a:hover { color:var(--accent); }
-        .nav-links a.active { color:var(--accent); font-weight:600; }
-        
-        .hero {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            padding: 0 5%;
-            position: relative;
-            z-index: 10;
-        }
-        .hero-content {
-            max-width: 720px;
-        }
-        .hero h1 {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: clamp(3.2rem, 8vw, 5.8rem);
-            line-height: 1.05;
-            font-weight: 600;
-            margin-bottom: 1.25rem;
-            letter-spacing: -0.04em;
-        }
-        .hero p {
-            font-size: 1.35rem;
-            color: #aaa;
-            max-width: 480px;
-            margin-bottom: 2.5rem;
-        }
-        .cta-buttons {
-            display: flex;
-            gap: 1.25rem;
-            flex-wrap: wrap;
-        }
-        .btn {
-            padding: 1rem 2.25rem;
-            border-radius: 9999px;
-            font-weight: 600;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            font-size: 1.05rem;
-            min-width: 220px;
-        }
-        .btn-primary {
-            background: var(--accent);
-            color: #000;
-            box-shadow: 0 10px 30px -10px rgba(0, 212, 255, 0.4);
-        }
-        .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 35px -8px rgba(0, 212, 255, 0.5);
-            background: #00e6ff;
-        }
-        .btn-secondary {
-            background: transparent;
-            color: var(--text);
-            border: 2px solid rgba(255,255,255,0.2);
-        }
-        .btn-secondary:hover {
-            border-color: var(--accent);
-            color: var(--accent);
-        }
-        
-        .features {
-            padding: 120px 5%;
-            background: #111;
-            position: relative;
-            z-index: 10;
-        }
-        .features h2 {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 2.75rem;
-            text-align: center;
-            margin-bottom: 4rem;
-            font-weight: 600;
-            letter-spacing: -0.03em;
-        }
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2.5rem;
-        }
-        .feature-card {
-            background: #181818;
-            border-radius: 24px;
-            padding: 2.75rem 2.25rem;
-            transition: all 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
-            border: 1px solid rgba(255,255,255,0.06);
-        }
-        .feature-card:hover {
-            transform: translateY(-12px);
-            border-color: var(--fog-border);
-            box-shadow: 0 25px 50px -12px rgba(0, 212, 255, 0.15);
-        }
-        .feature-card h3 { font-size: 1.45rem; margin-bottom: 1rem; color: var(--accent); }
-        .feature-card p { color: #ccc; line-height: 1.65; }
-        
-        .cta-section {
-            padding: 140px 5%;
-            background: #111;
-            text-align: center;
-            position: relative;
-            z-index: 10;
-        }
-        .cta-section h2 {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 3.2rem;
-            margin-bottom: 1rem;
-            letter-spacing: -0.04em;
-        }
-        .cta-section p {
-            max-width: 520px;
-            margin: 0 auto 2.5rem;
-            color: #aaa;
-            font-size: 1.25rem;
-        }
-        
-        footer {
-            padding: 3rem 5%;
-            background: #0a0a0a;
-            border-top: 1px solid rgba(255,255,255,0.08);
-            text-align: center;
-            font-size: 0.95rem;
-            color: #666;
-            z-index: 10;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FamilyHub — Private Family Management</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f8f9fa;
+      --surface: #ffffff;
+      --text: #202124;
+      --text-secondary: #5f6368;
+      --border: #e8eaed;
+      --accent: #1a73e8;
+      --accent-hover: #1765cc;
+      --shadow-soft: 0 1px 2px rgba(60,64,67,0.08), 0 1px 3px 1px rgba(60,64,67,0.06);
+      --shadow-card: 0 1px 3px rgba(60,64,67,0.08), 0 4px 8px 3px rgba(60,64,67,0.04);
+      --shadow-elevated: 0 2px 6px rgba(60,64,67,0.1), 0 8px 24px 4px rgba(60,64,67,0.06);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --font: 'Google Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+    html { height: 100%; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100%;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    /* Soft side-light / fog effect using layered shadows & subtle ambient */
+    .ambient {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 10% 20%, rgba(255,255,255,0.9) 0%, transparent 50%),
+        radial-gradient(ellipse 60% 40% at 90% 80%, rgba(232,234,237,0.6) 0%, transparent 50%);
+      opacity: 0.85;
+    }
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    /* Header */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.7);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.35rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--surface);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow-soft);
+      font-size: 1.2rem;
+    }
+    nav a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 500;
+      margin-left: 28px;
+      transition: color 0.15s;
+    }
+    nav a:hover { color: var(--text); }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 22px;
+      border-radius: 24px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s, box-shadow 0.15s;
+      font-family: inherit;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 1px 2px rgba(26,115,232,0.3);
+    }
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      box-shadow: 0 2px 6px rgba(26,115,232,0.35);
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover {
+      background: var(--surface);
+      box-shadow: var(--shadow-soft);
+    }
+    /* Hero */
+    .hero {
+      padding: 80px 0 64px;
+      text-align: center;
+    }
+    .hero h1 {
+      font-size: clamp(2.2rem, 5vw, 3.1rem);
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 18px;
+      color: var(--text);
+    }
+    .hero p {
+      font-size: 1.15rem;
+      color: var(--text-secondary);
+      max-width: 520px;
+      margin: 0 auto 36px;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    /* Features */
+    .features {
+      padding: 48px 0 80px;
+    }
+    .section-title {
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 36px;
+      color: var(--text);
+    }
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+    .feature-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      box-shadow: var(--shadow-card);
+      border: 1px solid rgba(232,234,237,0.8);
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .feature-card:hover {
+      box-shadow: var(--shadow-elevated);
+      transform: translateY(-2px);
+    }
+    .feature-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow-soft);
+    }
+    .feature-card h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+    .feature-card p {
+      font-size: 0.92rem;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 0;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+    @media (max-width: 600px) {
+      header { padding: 16px 0; }
+      nav a { margin-left: 16px; font-size: 0.9rem; }
+      .hero { padding: 56px 0 48px; }
+    }
+  </style>
 </head>
 <body>
-    <div class="side-fog left-fog"></div>
-    <div class="side-fog right-fog"></div>
+  <div class="ambient" aria-hidden="true"></div>
 
-    <header>
-        <div class="logo">Family</div>
-        <ul class="nav-links">
-            <li><a href="#" onclick="navigateTo('login')">Log in</a></li>
-            <li><a href="#" onclick="navigateTo('dash')" class="active">Dashboard</a></li>
-        </ul>
-    </header>
+  <header>
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+      <a href="index.html" class="logo">
+        <span class="logo-icon">🏠</span>
+        FamilyHub
+      </a>
+      <nav>
+        <a href="login.html">Sign in</a>
+      </nav>
+    </div>
+  </header>
 
+  <main>
     <section class="hero">
-        <div class="hero-content">
-            <h1>A modern family workspace<br>built for you.</h1>
-            <p>Secure, private, and designed for real families. Real-time updates, shared calendars, and smart notes — all in one beautiful place.</p>
-            <div class="cta-buttons">
-                <a href="#" onclick="navigateTo('login')" class="btn btn-primary">Log in now</a>
-                <a href="#" class="btn btn-secondary">See how it works</a>
-            </div>
+      <div class="container">
+        <h1>Your family’s private space</h1>
+        <p>A calm, secure place for schedules, tasks, notes and moments — built only for the people you trust.</p>
+        <div class="hero-actions">
+          <a href="login.html" class="btn btn-primary">Sign in to FamilyHub</a>
+          <a href="#features" class="btn btn-ghost">See what’s inside</a>
         </div>
+      </div>
     </section>
 
-    <section class="features">
-        <h2>Everything you need</h2>
-        <div class="features-grid">
-            <div class="feature-card">
-                <h3>Secure Access</h3>
-                <p>Only family members with the exact link can enter. No public links. Zero strangers.</p>
-            </div>
-            <div class="feature-card">
-                <h3>Real-time sync</h3>
-                <p>Changes appear instantly for everyone. No more "did you see my last update?"</p>
-            </div>
-            <div class="feature-card">
-                <h3>Simple &amp; elegant</h3>
-                <p>Google-like minimal design with soft fog lighting. Clean, fast, and premium.</p>
-            </div>
+    <section class="features" id="features">
+      <div class="container">
+        <h2 class="section-title">Everything your family needs</h2>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">📅</div>
+            <h3>Shared Calendar</h3>
+            <p>See everyone’s plans in one clean view. Birthdays, appointments and school events stay organised.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">✅</div>
+            <h3>Tasks & Chores</h3>
+            <p>Assign and track household tasks so nothing slips through the cracks.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">📝</div>
+            <h3>Family Notes</h3>
+            <p>Shared lists, recipes and reminders that everyone can update in real time.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">👨‍👩‍👧‍👦</div>
+            <h3>Members only</h3>
+            <p>No public signup. You add family members directly — privacy by design.</p>
+          </div>
         </div>
+      </div>
     </section>
+  </main>
 
-    <section class="cta-section">
-        <h2>Ready for your family?</h2>
-        <p>We'll add all your family members directly through Supabase. One account. Private forever.</p>
-        <a href="#" onclick="navigateTo('login')" class="btn btn-primary">Start with one family member</a>
-    </section>
-
-    <footer>
-        Made with ❤️ for real families
-    </footer>
+  <footer>
+    <div class="container">
+      <p>FamilyHub · Private family management · Built for your household only</p>
+    </div>
+  </footer>
 </body>
 </html>
