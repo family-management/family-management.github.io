@@ -73,25 +73,62 @@
     async function logLogin(user) {
       try {
         let ip = '', city = '', region = '', country = '';
-        try {
-          const res = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(4000) });
-          if (res.ok) {
-            const geo = await res.json();
-            ip = geo.ip || '';
-            city = geo.city || '';
-            region = geo.region || '';
-            country = geo.country_name || geo.country || '';
+        // Try multiple free geo APIs (CORS-friendly)
+        const apis = [
+          async () => {
+            const r = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(3500) });
+            if (!r.ok) throw new Error('ipapi');
+            const g = await r.json();
+            return { ip: g.ip, city: g.city, region: g.region, country: g.country_name || g.country };
+          },
+          async () => {
+            const r = await fetch('https://ipwho.is/', { signal: AbortSignal.timeout(3500) });
+            if (!r.ok) throw new Error('ipwho');
+            const g = await r.json();
+            if (g.success === false) throw new Error('ipwho fail');
+            return { ip: g.ip, city: g.city, region: g.region, country: g.country };
+          },
+          async () => {
+            const r = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(3000) });
+            if (!r.ok) throw new Error('ipify');
+            const g = await r.json();
+            return { ip: g.ip, city: '', region: '', country: '' };
           }
-        } catch (_) {}
+        ];
+        for (const fn of apis) {
+          try {
+            const g = await fn();
+            if (g && g.ip) {
+              ip = g.ip || '';
+              city = g.city || city;
+              region = g.region || region;
+              country = g.country || country;
+              if (ip) break;
+            }
+          } catch (_) {}
+        }
+        // Parse a simple device string from UA
+        const ua = navigator.userAgent || '';
+        let device = 'Unknown device';
+        if (/iPhone|iPad/.test(ua)) device = 'Apple iOS';
+        else if (/Android/.test(ua)) device = 'Android';
+        else if (/Mac OS X|Macintosh/.test(ua)) device = 'Mac';
+        else if (/Windows/.test(ua)) device = 'Windows';
+        else if (/Linux/.test(ua)) device = 'Linux';
+        if (/Mobile|Android.*Mobile|iPhone/.test(ua)) device += ' · Mobile';
+        else if (/iPad|Tablet/.test(ua)) device += ' · Tablet';
+        else device += ' · Desktop';
+        const browser = /Edg\//.test(ua) ? 'Edge' : /Chrome\//.test(ua) ? 'Chrome' : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : 'Browser';
+        device = browser + ' · ' + device;
 
         await supabaseClient.from('login_logs').insert({
           user_id: user.id,
           email: user.email,
-          ip_address: ip || 'unknown',
+          ip_address: ip || 'unavailable',
           city: city || null,
           region: region || null,
           country: country || null,
-          user_agent: navigator.userAgent || null
+          user_agent: device
         });
       } catch (e) {
         console.warn('Could not write login log', e);

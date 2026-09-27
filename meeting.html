@@ -8,187 +8,307 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
-    :root{--white:#ffffff;--off:#f7f6f4;--bg:#f0eeeb;--ink:#0c0c0c;--ink2:#3a3a3a;--muted:#888;--border:#e2dfdb;--accent:#1a6bf5;--sidebar-w:220px;}
-    body{font-family:'Geist',system-ui,sans-serif;background:var(--off);color:var(--ink);min-height:100%;}
-    body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 900px 500px at 5% 0%,rgba(26,107,245,.05),transparent 50%);}
-    .layout{position:relative;z-index:1;display:flex;min-height:100vh;}
-    .sidebar{width:var(--sidebar-w);background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:20px 0;flex-shrink:0;}
-    .sidebar-logo{font-family:'Instrument Serif',serif;font-size:18px;padding:0 20px 24px;text-decoration:none;color:var(--ink);display:block;}
-    .nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;margin:0 8px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:13.5px;}
-    .nav-item:hover,.nav-item.active{background:var(--off);color:var(--ink);font-weight:500;}
-    .nav-item svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7;}
+    :root{
+      --bg:#0c0c0c;--surface:#161616;--surface2:#1e1e1e;--border:#2a2a2a;
+      --ink:#f5f5f5;--muted:#8a8a8a;--accent:#6d4aff;--accent2:#8b6fff;
+      --danger:#ff5c5c;--ok:#3ecf8e;--sidebar-w:240px;
+    }
+    html,body{height:100%;}
+    body{font-family:'Geist',system-ui,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;}
+    .layout{display:flex;min-height:100vh;}
+    .sidebar{width:var(--sidebar-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:20px 0;flex-shrink:0;}
+    .logo{font-family:'Instrument Serif',serif;font-size:18px;color:var(--ink);text-decoration:none;padding:0 20px 24px;display:block;}
+    .nav-item{display:block;padding:10px 20px;margin:0 8px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:13.5px;transition:all .15s;}
+    .nav-item:hover,.nav-item.active{background:var(--surface2);color:var(--ink);}
+    .nav-item.active{font-weight:500;}
     .sidebar-footer{margin-top:auto;padding:16px;border-top:1px solid var(--border);}
-    .user-row{display:flex;gap:10px;align-items:center;margin-bottom:12px;}
-    .avatar{width:34px;height:34px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;}
-    .btn-out{width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:transparent;font-size:12.5px;cursor:pointer;font-family:inherit;color:var(--muted);}
+    .btn-out{width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12.5px;cursor:pointer;font-family:inherit;}
     .main{flex:1;padding:28px 32px;overflow-y:auto;}
     .page-header h1{font-family:'Instrument Serif',serif;font-size:28px;font-weight:400;}
     .page-header p{font-size:14px;color:var(--muted);margin-top:4px;margin-bottom:24px;}
-    .panel{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:18px;}
+    .panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:18px;}
     .panel h2{font-size:15px;font-weight:600;margin-bottom:14px;}
     .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
     .form-grid .full{grid-column:1/-1;}
-    label{display:block;font-size:12px;font-weight:500;color:var(--ink2);margin-bottom:5px;}
-    input,textarea,select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13.5px;font-family:inherit;background:var(--off);outline:none;}
-    input:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,107,245,.1);background:var(--white);}
-    textarea{min-height:80px;resize:vertical;}
-    .btn-sm{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;font-family:inherit;border:1px solid var(--border);background:var(--white);cursor:pointer;}
-    .btn-sm.primary{background:var(--ink);color:#fff;border-color:var(--ink);}
-    .btn-sm.danger{color:#c93b2a;border-color:#f0c4c0;}
-    .meeting-card{border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px;background:var(--off);}
+    label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:5px;}
+    input,textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13.5px;font-family:inherit;background:var(--surface2);color:var(--ink);outline:none;}
+    input:focus,textarea:focus{border-color:var(--accent);}
+    textarea{min-height:70px;resize:vertical;}
+    .btn{padding:10px 18px;border-radius:10px;font-size:13px;font-weight:500;font-family:inherit;border:none;cursor:pointer;transition:all .15s;}
+    .btn-primary{background:var(--accent);color:#fff;}.btn-primary:hover{background:var(--accent2);}
+    .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--ink);}
+    .btn-ghost:hover{background:var(--surface2);}
+    .btn-danger{background:rgba(255,92,92,.15);color:var(--danger);border:1px solid rgba(255,92,92,.3);}
+    .btn-ok{background:rgba(62,207,142,.15);color:var(--ok);border:1px solid rgba(62,207,142,.3);}
+    .meeting-card{border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px;background:var(--surface2);display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;}
     .meeting-card h3{font-size:15px;font-weight:600;margin-bottom:6px;}
-    .meeting-meta{font-size:12.5px;color:var(--muted);margin-bottom:8px;line-height:1.5;}
-    .meeting-agenda{font-size:13.5px;line-height:1.55;white-space:pre-wrap;}
+    .meeting-meta{font-size:12.5px;color:var(--muted);line-height:1.5;}
     .empty{font-size:13px;color:var(--muted);padding:12px 0;}
     .admin-only{display:none;}
-    .auth-loading{position:fixed;inset:0;background:var(--off);display:flex;align-items:center;justify-content:center;z-index:100;font-size:14px;color:var(--muted);}
+    /* CALL ROOM — Proton Meet style */
+    .call-overlay{position:fixed;inset:0;background:#0a0a0a;z-index:200;display:none;flex-direction:column;}
+    .call-overlay.open{display:flex;}
+    .call-top{padding:16px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+    .call-title{font-size:15px;font-weight:500;}
+    .call-timer{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;}
+    .call-stage{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;gap:16px;flex-wrap:wrap;overflow:auto;}
+    .participant{width:200px;height:200px;border-radius:16px;background:var(--surface);border:2px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;transition:border-color .2s;}
+    .participant.speaking{border-color:var(--ok);box-shadow:0 0 0 3px rgba(62,207,142,.2);}
+    .participant .av{width:72px;height:72px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:600;margin-bottom:12px;}
+    .participant .name{font-size:14px;font-weight:500;}
+    .participant .status{font-size:11px;color:var(--muted);margin-top:4px;}
+    .call-controls{padding:20px 24px 28px;display:flex;align-items:center;justify-content:center;gap:12px;border-top:1px solid var(--border);background:var(--surface);}
+    .ctrl{width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;background:var(--surface2);color:var(--ink);transition:all .15s;}
+    .ctrl:hover{background:#2a2a2a;}
+    .ctrl.off{background:var(--danger);color:#fff;}
+    .ctrl.leave{background:var(--danger);color:#fff;width:auto;padding:0 20px;border-radius:26px;font-size:13px;font-weight:500;gap:8px;}
+    .ctrl svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+    .auth-loading{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100;color:var(--muted);}
     .auth-loading.hidden{display:none;}
-    @media(max-width:768px){.sidebar{display:none;}.main{padding:20px 16px;}.form-grid{grid-template-columns:1fr;}}
+    @media(max-width:768px){.sidebar{display:none;}.main{padding:20px 16px;}.form-grid{grid-template-columns:1fr;}.participant{width:140px;height:140px;}}
   </style>
 </head>
 <body>
   <div id="authLoading" class="auth-loading">Checking session…</div>
   <div class="layout" id="app" style="display:none;">
     <aside class="sidebar">
-      <a href="dash.html" class="sidebar-logo">FamilyHub</a>
+      <a href="dash.html" class="logo">FamilyHub</a>
       <nav>
         <a href="dash.html" class="nav-item">Dashboard</a>
         <a href="meeting.html" class="nav-item active">Meetings</a>
+        <a href="chat.html" class="nav-item">Chat</a>
         <a href="acc.html" class="nav-item">Account</a>
         <a href="admin.html" class="nav-item" id="adminNav" style="display:none;">Admin</a>
         <a href="logs.html" class="nav-item" id="logsNav" style="display:none;">Logs</a>
       </nav>
       <div class="sidebar-footer">
-        <div class="user-row"><div class="avatar" id="userAvatar">?</div><div><div id="userName" style="font-size:13px;font-weight:500;">—</div><div id="userRole" style="font-size:11px;color:var(--muted);">—</div></div></div>
         <button class="btn-out" id="logoutBtn">Sign out</button>
       </div>
     </aside>
     <main class="main">
       <div class="page-header">
         <h1>Family meetings</h1>
-        <p>Schedule and view family meetings. Only the admin can create or remove them.</p>
+        <p>Schedule meetings and start a voice call with the family — private, in-browser.</p>
+      </div>
+
+      <div class="panel">
+        <h2>Start a voice call now</h2>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">Join the family voice room. Everyone signed in can join. Mic required.</p>
+        <button class="btn btn-primary" id="startCallBtn">Join family voice room</button>
       </div>
 
       <div class="panel admin-only" id="createPanel">
         <h2>Schedule a meeting</h2>
         <div class="form-grid">
-          <div class="full">
-            <label for="mTitle">Title</label>
-            <input id="mTitle" placeholder="e.g. Weekly family check-in" maxlength="120">
-          </div>
-          <div>
-            <label for="mDate">Date</label>
-            <input type="date" id="mDate">
-          </div>
-          <div>
-            <label for="mTime">Time</label>
-            <input type="time" id="mTime">
-          </div>
-          <div class="full">
-            <label for="mLocation">Location / link</label>
-            <input id="mLocation" placeholder="Home / Zoom link / etc." maxlength="200">
-          </div>
-          <div class="full">
-            <label for="mAgenda">Agenda / notes</label>
-            <textarea id="mAgenda" placeholder="Topics to discuss…"></textarea>
-          </div>
+          <div class="full"><label>Title</label><input id="mTitle" placeholder="Weekly family check-in" maxlength="120"></div>
+          <div><label>Date</label><input type="date" id="mDate"></div>
+          <div><label>Time</label><input type="time" id="mTime"></div>
+          <div class="full"><label>Location / notes</label><input id="mLocation" placeholder="Home / link / notes" maxlength="200"></div>
+          <div class="full"><label>Agenda</label><textarea id="mAgenda"></textarea></div>
         </div>
-        <button class="btn-sm primary" id="addMeeting">Schedule meeting</button>
+        <button class="btn btn-primary" id="addMeeting">Schedule</button>
       </div>
 
       <div class="panel">
-        <h2>Upcoming & past meetings</h2>
+        <h2>Scheduled meetings</h2>
         <div id="meetingsList"><p class="empty">Loading…</p></div>
       </div>
     </main>
   </div>
+
+  <!-- Voice call UI -->
+  <div class="call-overlay" id="callOverlay">
+    <div class="call-top">
+      <div class="call-title" id="callTitle">Family voice room</div>
+      <div class="call-timer" id="callTimer">00:00</div>
+    </div>
+    <div class="call-stage" id="callStage"></div>
+    <div class="call-controls">
+      <button class="ctrl" id="micBtn" title="Mute"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
+      <button class="ctrl leave" id="leaveBtn">Leave</button>
+    </div>
+  </div>
+
 <script>
 const SUPABASE_URL = 'https://bwzfzeazmnppgndysqky.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3emZ6ZWF6bW5wcGduZHlzcWt5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0ODUxNDcsImV4cCI6MjEwNjA2MTE0N30.OYjsU24HCcAmj_GKpqCWNsGgekwDJsCm3MKLuGlbiLo';
 const ADMIN_EMAIL = 'rajeevnitj@gmail.com';
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-let currentUser = null, isAdmin = false;
 
-function esc(s){ const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
-async function logAct(action, type, id, details){
-  try{ await sb.from('activity_logs').insert({ user_id: currentUser?.id, email: currentUser?.email, action, entity_type: type, entity_id: id?String(id):null, details }); }catch(_){}
-}
+let currentUser = null, isAdmin = false, displayName = 'Member';
+let localStream = null, peers = {}, channel = null, muted = false, callStart = null, timerIv = null;
+
+function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+async function logAct(a,t,id,d){try{await sb.from('activity_logs').insert({user_id:currentUser?.id,email:currentUser?.email,action:a,entity_type:t,entity_id:id?String(id):null,details:d});}catch(_){}}
 
 (async()=>{
-  const { data: { session } } = await sb.auth.getSession();
-  if(!session){ location.href='login.html'; return; }
-  currentUser = session.user;
-  isAdmin = (currentUser.email||'').toLowerCase() === ADMIN_EMAIL.toLowerCase();
-  let name = currentUser.email?.split('@')[0] || 'Member';
-  try{
-    const { data: prof } = await sb.from('profiles').select('full_name,designation,role').eq('id', currentUser.id).single();
-    if(prof){ name = prof.full_name || name; document.getElementById('userRole').textContent = prof.designation || prof.role || 'Member'; }
-  }catch(_){}
-  document.getElementById('userName').textContent = name;
-  document.getElementById('userAvatar').textContent = (name[0]||'?').toUpperCase();
-  if(isAdmin){
-    document.getElementById('adminNav').style.display = 'flex';
-    document.getElementById('logsNav').style.display = 'flex';
-    document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
-  }
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){location.href='login.html';return;}
+  currentUser=session.user;
+  isAdmin=(currentUser.email||'').toLowerCase()===ADMIN_EMAIL.toLowerCase();
+  displayName=currentUser.email?.split('@')[0]||'Member';
+  try{const {data:p}=await sb.from('profiles').select('full_name').eq('id',currentUser.id).single(); if(p?.full_name) displayName=p.full_name;}catch(_){}
+  if(isAdmin){document.getElementById('adminNav').style.display='block';document.getElementById('logsNav').style.display='block';document.querySelectorAll('.admin-only').forEach(e=>e.style.display='block');}
   document.getElementById('authLoading').classList.add('hidden');
-  document.getElementById('app').style.display = 'flex';
+  document.getElementById('app').style.display='flex';
   await loadMeetings();
-  setInterval(loadMeetings, 15000);
 })();
-
-document.getElementById('logoutBtn').onclick = async()=>{ await sb.auth.signOut(); location.href='login.html'; };
+document.getElementById('logoutBtn').onclick=async()=>{await sb.auth.signOut();location.href='login.html';};
 
 async function loadMeetings(){
-  const { data, error } = await sb.from('meetings').select('*').order('meeting_date', { ascending: false }).order('meeting_time', { ascending: false });
-  const box = document.getElementById('meetingsList');
-  if(error){ box.innerHTML = `<p class="empty">Error: ${esc(error.message)}. Make sure the meetings table exists (see SQL below).</p>`; return; }
-  if(!data || !data.length){ box.innerHTML = '<p class="empty">No meetings scheduled yet.</p>'; return; }
-  const today = new Date().toISOString().slice(0,10);
-  box.innerHTML = data.map(m => {
-    const past = m.meeting_date < today;
-    return `<div class="meeting-card" style="${past?'opacity:.7':''}">
-      <h3>${esc(m.title)}${past?' <span style="font-size:11px;color:var(--muted);font-weight:400;">(past)</span>':''}</h3>
-      <div class="meeting-meta">
-        <strong>${esc(m.meeting_date)}</strong>${m.meeting_time ? ' · ' + esc(m.meeting_time) : ''}
-        ${m.location ? '<br>' + esc(m.location) : ''}
+  const {data,error}=await sb.from('meetings').select('*').order('meeting_date',{ascending:false});
+  const box=document.getElementById('meetingsList');
+  if(error){box.innerHTML=`<p class="empty">${esc(error.message)}</p>`;return;}
+  if(!data?.length){box.innerHTML='<p class="empty">No scheduled meetings.</p>';return;}
+  const today=new Date().toISOString().slice(0,10);
+  box.innerHTML=data.map(m=>{
+    const past=m.meeting_date<today;
+    return `<div class="meeting-card">
+      <div>
+        <h3>${esc(m.title)}${past?' <span style="font-size:11px;color:var(--muted)">(past)</span>':''}</h3>
+        <div class="meeting-meta"><strong>${esc(m.meeting_date)}</strong>${m.meeting_time?' · '+esc(m.meeting_time):''}${m.location?' · '+esc(m.location):''}</div>
+        ${m.agenda?`<div class="meeting-meta" style="margin-top:6px">${esc(m.agenda)}</div>`:''}
       </div>
-      ${m.agenda ? `<div class="meeting-agenda">${esc(m.agenda)}</div>` : ''}
-      ${isAdmin ? `<div style="margin-top:12px;"><button class="btn-sm danger" onclick="deleteMeeting('${m.id}')">Remove</button></div>` : ''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-ok" onclick="joinCall('${esc(m.title)}')">Join voice</button>
+        ${isAdmin?`<button class="btn btn-danger" onclick="deleteMeeting('${m.id}')">Remove</button>`:''}
+      </div>
     </div>`;
   }).join('');
 }
 
-document.getElementById('addMeeting').onclick = async()=>{
-  if(!isAdmin){ alert('Only the family admin can schedule meetings.'); return; }
-  const title = document.getElementById('mTitle').value.trim();
-  const date = document.getElementById('mDate').value;
-  if(!title || !date){ alert('Title and date are required.'); return; }
-  const { data, error } = await sb.from('meetings').insert({
-    title,
-    meeting_date: date,
-    meeting_time: document.getElementById('mTime').value || null,
-    location: document.getElementById('mLocation').value.trim() || null,
-    agenda: document.getElementById('mAgenda').value.trim() || null,
-    created_by: currentUser.id
-  }).select().single();
-  if(error){ alert(error.message); return; }
-  await logAct('created_meeting', 'meeting', data.id, `Scheduled meeting "${title}" on ${date}`);
-  document.getElementById('mTitle').value = '';
-  document.getElementById('mDate').value = '';
-  document.getElementById('mTime').value = '';
-  document.getElementById('mLocation').value = '';
-  document.getElementById('mAgenda').value = '';
+document.getElementById('addMeeting').onclick=async()=>{
+  if(!isAdmin)return;
+  const title=document.getElementById('mTitle').value.trim(), date=document.getElementById('mDate').value;
+  if(!title||!date){alert('Title and date required');return;}
+  const {data,error}=await sb.from('meetings').insert({title,meeting_date:date,meeting_time:document.getElementById('mTime').value||null,location:document.getElementById('mLocation').value.trim()||null,agenda:document.getElementById('mAgenda').value.trim()||null,created_by:currentUser.id}).select().single();
+  if(error){alert(error.message);return;}
+  await logAct('created_meeting','meeting',data.id,`Scheduled "${title}"`);
+  ['mTitle','mDate','mTime','mLocation','mAgenda'].forEach(id=>document.getElementById(id).value='');
   await loadMeetings();
 };
+window.deleteMeeting=async(id)=>{if(!isAdmin||!confirm('Remove?'))return;await sb.from('meetings').delete().eq('id',id);await logAct('deleted_meeting','meeting',id,'Deleted meeting');await loadMeetings();};
 
-window.deleteMeeting = async(id)=>{
-  if(!isAdmin){ alert('Only the family admin can remove meetings.'); return; }
-  if(!confirm('Remove this meeting?')) return;
-  await sb.from('meetings').delete().eq('id', id);
-  await logAct('deleted_meeting', 'meeting', id, 'Deleted a meeting');
-  await loadMeetings();
+// ─── WebRTC voice room (mesh via Supabase Realtime) ───
+const ROOM = 'family-voice';
+window.joinCall = (title) => startCall(title || 'Family voice room');
+document.getElementById('startCallBtn').onclick = () => startCall('Family voice room');
+
+async function startCall(title){
+  try{
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+  }catch(e){
+    alert('Microphone access is required for voice calls.');
+    return;
+  }
+  document.getElementById('callTitle').textContent = title;
+  document.getElementById('callOverlay').classList.add('open');
+  callStart = Date.now();
+  timerIv = setInterval(()=>{
+    const s=Math.floor((Date.now()-callStart)/1000);
+    document.getElementById('callTimer').textContent = String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+  },1000);
+  renderStage();
+
+  channel = sb.channel(ROOM, { config: { presence: { key: currentUser.id } } });
+  channel.on('presence', { event: 'sync' }, () => {
+    const state = channel.presenceState();
+    Object.keys(state).forEach(uid => {
+      if(uid === currentUser.id) return;
+      if(!peers[uid]) createPeer(uid, true);
+    });
+    // remove left
+    Object.keys(peers).forEach(uid => { if(!state[uid]) closePeer(uid); });
+    renderStage();
+  });
+  channel.on('broadcast', { event: 'signal' }, ({ payload }) => {
+    if(payload.to !== currentUser.id) return;
+    handleSignal(payload.from, payload.data);
+  });
+  await channel.subscribe(async (status) => {
+    if(status === 'SUBSCRIBED'){
+      await channel.track({ name: displayName, email: currentUser.email });
+    }
+  });
+  await logAct('joined_call','meeting',null,`Joined voice: ${title}`);
+}
+
+function createPeer(remoteId, initiator){
+  const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+  peers[remoteId] = { pc, stream: null };
+  localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+  pc.ontrack = (e) => {
+    peers[remoteId].stream = e.streams[0];
+    renderStage();
+  };
+  pc.onicecandidate = (e) => {
+    if(e.candidate) sendSignal(remoteId, { type: 'candidate', candidate: e.candidate });
+  };
+  if(initiator){
+    pc.createOffer().then(offer => pc.setLocalDescription(offer)).then(() => {
+      sendSignal(remoteId, { type: 'offer', sdp: pc.localDescription });
+    });
+  }
+}
+
+async function handleSignal(from, data){
+  if(!peers[from]) createPeer(from, false);
+  const pc = peers[from].pc;
+  if(data.type === 'offer'){
+    await pc.setRemoteDescription(data.sdp);
+    const ans = await pc.createAnswer();
+    await pc.setLocalDescription(ans);
+    sendSignal(from, { type: 'answer', sdp: pc.localDescription });
+  } else if(data.type === 'answer'){
+    await pc.setRemoteDescription(data.sdp);
+  } else if(data.type === 'candidate' && data.candidate){
+    try{ await pc.addIceCandidate(data.candidate); }catch(_){}
+  }
+}
+
+function sendSignal(to, data){
+  channel.send({ type: 'broadcast', event: 'signal', payload: { from: currentUser.id, to, data } });
+}
+
+function closePeer(uid){
+  if(peers[uid]){ peers[uid].pc.close(); delete peers[uid]; }
+  renderStage();
+}
+
+function renderStage(){
+  const stage = document.getElementById('callStage');
+  let html = `<div class="participant speaking" id="selfTile"><div class="av">${(displayName[0]||'?').toUpperCase()}</div><div class="name">${esc(displayName)} (you)</div><div class="status">${muted?'Muted':'Mic on'}</div></div>`;
+  Object.entries(peers).forEach(([uid,p])=>{
+    const name = (channel?.presenceState()?.[uid]?.[0]?.name) || 'Member';
+    html += `<div class="participant" id="peer-${uid}"><div class="av">${(name[0]||'?').toUpperCase()}</div><div class="name">${esc(name)}</div><div class="status">Connected</div></div>`;
+    // attach audio
+    setTimeout(()=>{
+      if(p.stream){
+        let audio = document.getElementById('audio-'+uid);
+        if(!audio){ audio=document.createElement('audio'); audio.id='audio-'+uid; audio.autoplay=true; document.body.appendChild(audio); }
+        audio.srcObject = p.stream;
+      }
+    },50);
+  });
+  stage.innerHTML = html;
+}
+
+document.getElementById('micBtn').onclick = () => {
+  muted = !muted;
+  if(localStream) localStream.getAudioTracks().forEach(t => t.enabled = !muted);
+  document.getElementById('micBtn').classList.toggle('off', muted);
+  renderStage();
+};
+
+document.getElementById('leaveBtn').onclick = async () => {
+  if(localStream){ localStream.getTracks().forEach(t=>t.stop()); localStream=null; }
+  Object.keys(peers).forEach(closePeer);
+  if(channel){ await channel.unsubscribe(); channel=null; }
+  document.querySelectorAll('audio').forEach(a=>a.remove());
+  clearInterval(timerIv);
+  document.getElementById('callOverlay').classList.remove('open');
+  await logAct('left_call','meeting',null,'Left voice room');
 };
 </script>
 </body>

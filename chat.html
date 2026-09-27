@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat — FamilyHub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    :root{
+      --white:#fff;--off:#f7f6f4;--bg:#f0eeeb;--ink:#0c0c0c;--ink2:#3a3a3a;
+      --muted:#888;--border:#e2dfdb;--accent:#1a6bf5;--sidebar-w:220px;--list-w:280px;
+    }
+    html,body{height:100%;}
+    body{font-family:'Geist',system-ui,sans-serif;background:var(--off);color:var(--ink);height:100%;overflow:hidden;}
+    body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 900px 500px at 5% 0%,rgba(26,107,245,.05),transparent 50%);}
+    .layout{position:relative;z-index:1;display:flex;height:100vh;}
+    .sidebar{width:var(--sidebar-w);background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:20px 0;flex-shrink:0;}
+    .logo{font-family:'Instrument Serif',serif;font-size:18px;padding:0 20px 24px;text-decoration:none;color:var(--ink);display:block;}
+    .nav-item{display:block;padding:10px 20px;margin:0 8px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:13.5px;}
+    .nav-item:hover,.nav-item.active{background:var(--off);color:var(--ink);font-weight:500;}
+    .sidebar-footer{margin-top:auto;padding:16px;border-top:1px solid var(--border);}
+    .btn-out{width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:transparent;font-size:12.5px;cursor:pointer;font-family:inherit;color:var(--muted);}
+    .chat-list{width:var(--list-w);background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;}
+    .chat-list-head{padding:18px 16px 12px;border-bottom:1px solid var(--border);}
+    .chat-list-head h2{font-size:16px;font-weight:600;}
+    .chat-tabs{display:flex;gap:6px;margin-top:12px;}
+    .chat-tab{flex:1;padding:7px;border-radius:8px;border:1px solid var(--border);background:var(--off);font-size:12px;font-family:inherit;cursor:pointer;text-align:center;}
+    .chat-tab.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+    .conv-list{flex:1;overflow-y:auto;padding:8px;}
+    .conv-item{padding:12px;border-radius:10px;cursor:pointer;margin-bottom:2px;transition:background .12s;}
+    .conv-item:hover,.conv-item.active{background:var(--off);}
+    .conv-item .name{font-size:13.5px;font-weight:500;}
+    .conv-item .preview{font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .chat-main{flex:1;display:flex;flex-direction:column;background:var(--off);min-width:0;}
+    .chat-header{padding:16px 20px;background:var(--white);border-bottom:1px solid var(--border);font-size:15px;font-weight:500;}
+    .messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:10px;}
+    .msg{max-width:70%;padding:10px 14px;border-radius:14px;font-size:14px;line-height:1.45;word-break:break-word;}
+    .msg.mine{align-self:flex-end;background:var(--ink);color:#fff;border-bottom-right-radius:4px;}
+    .msg.theirs{align-self:flex-start;background:var(--white);border:1px solid var(--border);border-bottom-left-radius:4px;}
+    .msg .meta{font-size:10px;opacity:.65;margin-top:4px;}
+    .composer{padding:14px 16px;background:var(--white);border-top:1px solid var(--border);display:flex;gap:10px;}
+    .composer input{flex:1;padding:12px 14px;border:1px solid var(--border);border-radius:24px;font-size:14px;font-family:inherit;outline:none;background:var(--off);}
+    .composer input:focus{border-color:var(--accent);background:var(--white);}
+    .composer button{padding:12px 20px;border-radius:24px;border:none;background:var(--ink);color:#fff;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;}
+    .empty-state{flex:1;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;padding:40px;}
+    .auth-loading{position:fixed;inset:0;background:var(--off);display:flex;align-items:center;justify-content:center;z-index:100;color:var(--muted);}
+    .auth-loading.hidden{display:none;}
+    .new-dm{padding:8px 12px;margin:8px;border-radius:8px;border:1px dashed var(--border);background:transparent;font-size:12px;cursor:pointer;font-family:inherit;color:var(--muted);width:calc(100% - 16px);}
+    .new-dm:hover{background:var(--off);color:var(--ink);}
+    @media(max-width:900px){.sidebar{display:none;}.chat-list{width:100%;max-width:100%;}.chat-main{display:none;}.chat-main.open{display:flex;position:fixed;inset:0;z-index:50;}.chat-list.hide{display:none;}}
+  </style>
+</head>
+<body>
+  <div id="authLoading" class="auth-loading">Checking session…</div>
+  <div class="layout" id="app" style="display:none;">
+    <aside class="sidebar">
+      <a href="dash.html" class="logo">FamilyHub</a>
+      <nav>
+        <a href="dash.html" class="nav-item">Dashboard</a>
+        <a href="meeting.html" class="nav-item">Meetings</a>
+        <a href="chat.html" class="nav-item active">Chat</a>
+        <a href="acc.html" class="nav-item">Account</a>
+        <a href="admin.html" class="nav-item" id="adminNav" style="display:none;">Admin</a>
+        <a href="logs.html" class="nav-item" id="logsNav" style="display:none;">Logs</a>
+      </nav>
+      <div class="sidebar-footer"><button class="btn-out" id="logoutBtn">Sign out</button></div>
+    </aside>
+
+    <div class="chat-list" id="chatList">
+      <div class="chat-list-head">
+        <h2>Messages</h2>
+        <div class="chat-tabs">
+          <button class="chat-tab active" data-mode="group">Group</button>
+          <button class="chat-tab" data-mode="dm">Private</button>
+        </div>
+      </div>
+      <button class="new-dm" id="newDmBtn" style="display:none;">+ New private chat</button>
+      <div class="conv-list" id="convList"></div>
+    </div>
+
+    <div class="chat-main" id="chatMain">
+      <div class="chat-header" id="chatHeader">Select a conversation</div>
+      <div class="messages" id="messages"></div>
+      <div class="composer" id="composer" style="display:none;">
+        <input type="text" id="msgInput" placeholder="Type a message…" maxlength="2000" autocomplete="off">
+        <button id="sendBtn">Send</button>
+      </div>
+      <div class="empty-state" id="emptyState">Choose Group or start a private chat</div>
+    </div>
+  </div>
+
+<script>
+const SUPABASE_URL = 'https://bwzfzeazmnppgndysqky.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3emZ6ZWF6bW5wcGduZHlzcWt5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0ODUxNDcsImV4cCI6MjEwNjA2MTE0N30.OYjsU24HCcAmj_GKpqCWNsGgekwDJsCm3MKLuGlbiLo';
+const ADMIN_EMAIL = 'rajeevnitj@gmail.com';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentUser = null, displayName = 'Member';
+let mode = 'group'; // group | dm
+let activeConv = null; // 'group' or user_id for DM
+let members = [];
+let channel = null;
+
+function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+function fmtTime(ts){return new Date(ts).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}
+
+(async()=>{
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){location.href='login.html';return;}
+  currentUser=session.user;
+  displayName=currentUser.email?.split('@')[0]||'Member';
+  try{const {data:p}=await sb.from('profiles').select('full_name').eq('id',currentUser.id).single();if(p?.full_name)displayName=p.full_name;}catch(_){}
+  if((currentUser.email||'').toLowerCase()===ADMIN_EMAIL.toLowerCase()){
+    document.getElementById('adminNav').style.display='block';
+    document.getElementById('logsNav').style.display='block';
+  }
+  document.getElementById('authLoading').classList.add('hidden');
+  document.getElementById('app').style.display='flex';
+
+  const {data:m}=await sb.from('family_members').select('*').order('full_name');
+  members = m || [];
+  // also load profiles as possible DM targets
+  try{
+    const {data:profs}=await sb.from('profiles').select('id,full_name');
+    if(profs){
+      profs.forEach(p=>{
+        if(p.id===currentUser.id)return;
+        if(!members.find(x=>x.user_id===p.id)) members.push({user_id:p.id,full_name:p.full_name||'Member'});
+      });
+    }
+  }catch(_){}
+
+  renderConvList();
+  openGroup();
+})();
+
+document.getElementById('logoutBtn').onclick=async()=>{await sb.auth.signOut();location.href='login.html';};
+
+document.querySelectorAll('.chat-tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.chat-tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    mode=t.dataset.mode;
+    document.getElementById('newDmBtn').style.display=mode==='dm'?'block':'none';
+    renderConvList();
+    if(mode==='group') openGroup();
+  };
+});
+
+function renderConvList(){
+  const box=document.getElementById('convList');
+  if(mode==='group'){
+    box.innerHTML=`<div class="conv-item ${activeConv==='group'?'active':''}" onclick="openGroup()">
+      <div class="name">Family group</div>
+      <div class="preview">Everyone in the family</div>
+    </div>`;
+  } else {
+    const others=members.filter(m=>m.user_id && m.user_id!==currentUser.id);
+    if(!others.length){box.innerHTML='<p style="padding:16px;font-size:13px;color:var(--muted);">No other members yet. Add them in Admin.</p>';return;}
+    box.innerHTML=others.map(m=>`<div class="conv-item ${activeConv===m.user_id?'active':''}" onclick="openDm('${m.user_id}','${esc(m.full_name)}')">
+      <div class="name">${esc(m.full_name)}</div>
+      <div class="preview">Private chat</div>
+    </div>`).join('');
+  }
+}
+
+document.getElementById('newDmBtn').onclick=()=>{
+  const names=members.filter(m=>m.user_id&&m.user_id!==currentUser.id);
+  if(!names.length){alert('No other members to chat with.');return;}
+  const pick=prompt('Enter member name exactly:\\n'+names.map(n=>n.full_name).join('\\n'));
+  if(!pick)return;
+  const m=names.find(n=>n.full_name.toLowerCase()===pick.trim().toLowerCase());
+  if(!m){alert('Member not found');return;}
+  openDm(m.user_id, m.full_name);
+};
+
+window.openGroup=()=>{
+  activeConv='group';
+  document.getElementById('chatHeader').textContent='Family group';
+  document.getElementById('composer').style.display='flex';
+  document.getElementById('emptyState').style.display='none';
+  renderConvList();
+  loadMessages();
+  subscribeRealtime('group');
+};
+
+window.openDm=(userId, name)=>{
+  activeConv=userId;
+  document.getElementById('chatHeader').textContent=name;
+  document.getElementById('composer').style.display='flex';
+  document.getElementById('emptyState').style.display='none';
+  mode='dm';
+  document.querySelectorAll('.chat-tab').forEach(x=>x.classList.toggle('active',x.dataset.mode==='dm'));
+  document.getElementById('newDmBtn').style.display='block';
+  renderConvList();
+  loadMessages();
+  const room=[currentUser.id,userId].sort().join('_');
+  subscribeRealtime('dm_'+room);
+};
+
+async function loadMessages(){
+  const box=document.getElementById('messages');
+  box.innerHTML='<p style="color:var(--muted);font-size:13px;">Loading…</p>';
+  let q=sb.from('messages').select('*').order('created_at',{ascending:true}).limit(200);
+  if(activeConv==='group'){
+    q=q.eq('room','group');
+  } else {
+    const room=[currentUser.id,activeConv].sort().join('_');
+    q=q.eq('room','dm_'+room);
+  }
+  const {data,error}=await q;
+  if(error){box.innerHTML=`<p style="color:var(--muted);font-size:13px;">${esc(error.message)}</p>`;return;}
+  if(!data?.length){box.innerHTML='<p style="color:var(--muted);font-size:13px;text-align:center;margin-top:40px;">No messages yet. Say hello.</p>';return;}
+  box.innerHTML=data.map(m=>{
+    const mine=m.sender_id===currentUser.id;
+    return `<div class="msg ${mine?'mine':'theirs'}">${esc(m.body)}<div class="meta">${esc(m.sender_name||'')} · ${fmtTime(m.created_at)}</div></div>`;
+  }).join('');
+  box.scrollTop=box.scrollHeight;
+}
+
+function subscribeRealtime(room){
+  if(channel){sb.removeChannel(channel);channel=null;}
+  channel=sb.channel('chat:'+room);
+  channel.on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`room=eq.${room}`},(payload)=>{
+    const m=payload.new;
+    if(activeConv==='group' && m.room!=='group')return;
+    if(activeConv!=='group'){
+      const r=[currentUser.id,activeConv].sort().join('_');
+      if(m.room!=='dm_'+r)return;
+    }
+    const box=document.getElementById('messages');
+    const mine=m.sender_id===currentUser.id;
+    // avoid dup if we already added optimistically
+    box.insertAdjacentHTML('beforeend',`<div class="msg ${mine?'mine':'theirs'}">${esc(m.body)}<div class="meta">${esc(m.sender_name||'')} · ${fmtTime(m.created_at)}</div></div>`);
+    box.scrollTop=box.scrollHeight;
+  }).subscribe();
+}
+
+document.getElementById('sendBtn').onclick=sendMsg;
+document.getElementById('msgInput').onkeydown=e=>{if(e.key==='Enter')sendMsg();};
+
+async function sendMsg(){
+  const input=document.getElementById('msgInput');
+  const body=input.value.trim();
+  if(!body||!activeConv)return;
+  let room='group';
+  if(activeConv!=='group') room='dm_'+[currentUser.id,activeConv].sort().join('_');
+  input.value='';
+  const {error}=await sb.from('messages').insert({
+    room,
+    sender_id: currentUser.id,
+    sender_name: displayName,
+    body
+  });
+  if(error){alert(error.message);input.value=body;}
+}
+</script>
+</body>
+</html>
