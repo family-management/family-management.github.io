@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logs — FamilyHub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    :root{--white:#ffffff;--off:#f7f6f4;--bg:#f0eeeb;--ink:#0c0c0c;--ink2:#3a3a3a;--muted:#888;--border:#e2dfdb;--accent:#1a6bf5;--sidebar-w:220px;}
+    body{font-family:'Geist',system-ui,sans-serif;background:var(--off);color:var(--ink);min-height:100%;}
+    body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 900px 500px at 5% 0%,rgba(26,107,245,.05),transparent 50%);}
+    .layout{position:relative;z-index:1;display:flex;min-height:100vh;}
+    .sidebar{width:var(--sidebar-w);background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:20px 0;flex-shrink:0;}
+    .sidebar-logo{font-family:'Instrument Serif',serif;font-size:18px;padding:0 20px 24px;text-decoration:none;color:var(--ink);display:block;}
+    .nav-item{display:block;padding:10px 20px;margin:0 8px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:13.5px;}
+    .nav-item:hover,.nav-item.active{background:var(--off);color:var(--ink);font-weight:500;}
+    .sidebar-footer{margin-top:auto;padding:16px;border-top:1px solid var(--border);}
+    .btn-out{width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:transparent;font-size:12.5px;cursor:pointer;font-family:inherit;color:var(--muted);}
+    .main{flex:1;padding:28px 32px;overflow-y:auto;}
+    .page-header h1{font-family:'Instrument Serif',serif;font-size:28px;font-weight:400;}
+    .page-header p{font-size:14px;color:var(--muted);margin-top:4px;margin-bottom:24px;}
+    .tabs{display:flex;gap:8px;margin-bottom:20px;}
+    .tab{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--white);font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink2);}
+    .tab.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+    .panel{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:22px;display:none;}
+    .panel.active{display:block;}
+    table{width:100%;border-collapse:collapse;font-size:13px;}
+    th{text-align:left;font-weight:500;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px;}
+    td{padding:10px;border-bottom:1px solid var(--border);vertical-align:top;}
+    .empty{font-size:13px;color:var(--muted);padding:16px 0;}
+    .auth-loading,.denied{position:fixed;inset:0;background:var(--off);display:flex;align-items:center;justify-content:center;z-index:100;flex-direction:column;text-align:center;}
+    .denied{display:none;}.denied h1{font-family:'Instrument Serif',serif;font-size:28px;margin-bottom:8px;}
+    .auth-loading.hidden{display:none;}
+    .ip{font-family:ui-monospace,monospace;font-size:12px;}
+    .loc{font-size:12px;color:var(--muted);}
+    @media(max-width:768px){.sidebar{display:none;}.main{padding:20px 16px;}table{font-size:12px;}td,th{padding:8px 6px;}}
+  </style>
+</head>
+<body>
+  <div id="authLoading" class="auth-loading">Checking access…</div>
+  <div id="denied" class="denied"><h1>Access denied</h1><p style="color:var(--muted);margin:8px 0 20px;">Logs are only visible to the family admin.</p><a href="dash.html">Back to dashboard</a></div>
+  <div class="layout" id="app" style="display:none;">
+    <aside class="sidebar">
+      <a href="dash.html" class="sidebar-logo">FamilyHub</a>
+      <nav>
+        <a href="dash.html" class="nav-item">Dashboard</a>
+        <a href="admin.html" class="nav-item">Admin</a>
+        <a href="logs.html" class="nav-item active">Logs</a>
+        <a href="acc.html" class="nav-item">Account</a>
+      </nav>
+      <div class="sidebar-footer"><button class="btn-out" id="logoutBtn">Sign out</button></div>
+    </aside>
+    <main class="main">
+      <div class="page-header">
+        <h1>Logs</h1>
+        <p>Login history and activity across the family</p>
+      </div>
+      <div class="tabs">
+        <button class="tab active" data-tab="logins">Login history</button>
+        <button class="tab" data-tab="activity">Activity</button>
+      </div>
+      <div class="panel active" id="panel-logins">
+        <div id="loginsBox"><p class="empty">Loading…</p></div>
+      </div>
+      <div class="panel" id="panel-activity">
+        <div id="activityBox"><p class="empty">Loading…</p></div>
+      </div>
+    </main>
+  </div>
+<script>
+const SUPABASE_URL='https://bwzfzeazmnppgndysqky.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3emZ6ZWF6bW5wcGduZHlzcWt5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0ODUxNDcsImV4cCI6MjEwNjA2MTE0N30.OYjsU24HCcAmj_GKpqCWNsGgekwDJsCm3MKLuGlbiLo';
+const ADMIN_EMAIL='rajeevnitj@gmail.com';
+const {createClient}=supabase; const sb=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+function fmt(ts){if(!ts)return '—'; const d=new Date(ts); return d.toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'});}
+
+(async()=>{
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){location.href='login.html';return;}
+  if((session.user.email||'').toLowerCase()!==ADMIN_EMAIL.toLowerCase()){
+    document.getElementById('authLoading').style.display='none';
+    document.getElementById('denied').style.display='flex';
+    return;
+  }
+  document.getElementById('authLoading').classList.add('hidden');
+  document.getElementById('app').style.display='flex';
+  await loadLogins();
+  await loadActivity();
+})();
+document.getElementById('logoutBtn').onclick=async()=>{await sb.auth.signOut();location.href='login.html';};
+
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    document.getElementById('panel-'+t.dataset.tab).classList.add('active');
+  };
+});
+
+async function loadLogins(){
+  const {data,error}=await sb.from('login_logs').select('*').order('logged_in_at',{ascending:false}).limit(200);
+  const box=document.getElementById('loginsBox');
+  if(error){box.innerHTML=`<p class="empty">Error: ${esc(error.message)}</p>`;return;}
+  if(!data||!data.length){box.innerHTML='<p class="empty">No login records yet.</p>';return;}
+  box.innerHTML=`<table>
+    <thead><tr><th>When</th><th>Email</th><th>IP</th><th>Location</th><th>Device</th></tr></thead>
+    <tbody>${data.map(r=>{
+      const loc=[r.city,r.region,r.country].filter(Boolean).join(', ')||'—';
+      const ua=(r.user_agent||'').slice(0,60)+(r.user_agent&&r.user_agent.length>60?'…':'');
+      return `<tr>
+        <td>${fmt(r.logged_in_at)}</td>
+        <td>${esc(r.email)}</td>
+        <td class="ip">${esc(r.ip_address||'—')}</td>
+        <td class="loc">${esc(loc)}</td>
+        <td class="loc" title="${esc(r.user_agent||'')}">${esc(ua||'—')}</td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+}
+
+async function loadActivity(){
+  const {data,error}=await sb.from('activity_logs').select('*').order('created_at',{ascending:false}).limit(300);
+  const box=document.getElementById('activityBox');
+  if(error){box.innerHTML=`<p class="empty">Error: ${esc(error.message)}</p>`;return;}
+  if(!data||!data.length){box.innerHTML='<p class="empty">No activity yet.</p>';return;}
+  box.innerHTML=`<table>
+    <thead><tr><th>When</th><th>Who</th><th>Action</th><th>Details</th></tr></thead>
+    <tbody>${data.map(r=>`<tr>
+      <td>${fmt(r.created_at)}</td>
+      <td>${esc(r.email||'—')}</td>
+      <td>${esc(r.action)}</td>
+      <td>${esc(r.details||'—')}</td>
+    </tr>`).join('')}</tbody></table>`;
+}
+</script>
+</body>
+</html>

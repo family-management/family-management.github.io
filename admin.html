@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — FamilyHub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    :root{--white:#ffffff;--off:#f7f6f4;--bg:#f0eeeb;--ink:#0c0c0c;--ink2:#3a3a3a;--muted:#888;--border:#e2dfdb;--accent:#1a6bf5;--danger:#c93b2a;--sidebar-w:220px;}
+    body{font-family:'Geist',system-ui,sans-serif;background:var(--off);color:var(--ink);min-height:100%;}
+    body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 900px 500px at 5% 0%,rgba(26,107,245,.05),transparent 50%);}
+    .layout{position:relative;z-index:1;display:flex;min-height:100vh;}
+    .sidebar{width:var(--sidebar-w);background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:20px 0;flex-shrink:0;}
+    .sidebar-logo{font-family:'Instrument Serif',serif;font-size:18px;padding:0 20px 24px;text-decoration:none;color:var(--ink);display:block;}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;margin:0 8px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:13.5px;width:calc(100% - 16px);}
+    .nav-item:hover,.nav-item.active{background:var(--off);color:var(--ink);}.nav-item.active{font-weight:500;}
+    .nav-item svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7;}
+    .sidebar-footer{margin-top:auto;padding:16px;border-top:1px solid var(--border);}
+    .user-row{display:flex;gap:10px;align-items:center;margin-bottom:12px;}
+    .avatar{width:34px;height:34px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;}
+    .btn-out{width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:transparent;font-size:12.5px;cursor:pointer;font-family:inherit;color:var(--muted);}
+    .main{flex:1;padding:28px 32px;overflow-y:auto;}
+    .page-header h1{font-family:'Instrument Serif',serif;font-size:28px;font-weight:400;}
+    .page-header p{font-size:14px;color:var(--muted);margin-top:4px;}
+    .admin-badge{display:inline-block;font-size:11px;color:var(--accent);border:1px solid rgba(26,107,245,.25);background:rgba(26,107,245,.06);padding:3px 10px;border-radius:20px;margin-left:8px;}
+    .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin:20px 0;}
+    .stat{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:16px;}
+    .stat .label{font-size:11px;color:var(--muted);}.stat .value{font-size:22px;font-weight:600;}
+    .panel{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:18px;}
+    .panel h2{font-size:15px;font-weight:600;margin-bottom:14px;}
+    .form-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+    .form-row input,.form-row select{padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:var(--off);outline:none;}
+    .form-row input{flex:1;min-width:100px;}
+    .btn-sm{padding:7px 14px;border-radius:8px;font-size:12.5px;font-weight:500;font-family:inherit;border:1px solid var(--border);background:var(--white);cursor:pointer;}
+    .btn-sm.primary{background:var(--ink);color:#fff;border-color:var(--ink);}
+    .btn-sm.danger{color:var(--danger);border-color:#f0c4c0;}
+    table{width:100%;border-collapse:collapse;font-size:13px;}
+    th{text-align:left;font-weight:500;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px;}
+    td{padding:10px;border-bottom:1px solid var(--border);}
+    .empty{font-size:13px;color:var(--muted);padding:12px 0;}
+    .toast{position:fixed;bottom:24px;right:24px;background:var(--ink);color:#fff;padding:12px 20px;border-radius:10px;font-size:13.5px;opacity:0;transform:translateY(12px);transition:all .3s;z-index:50;}
+    .toast.show{opacity:1;transform:translateY(0);}
+    .auth-loading,.denied{position:fixed;inset:0;background:var(--off);display:flex;align-items:center;justify-content:center;z-index:100;flex-direction:column;text-align:center;}
+    .denied{display:none;}.denied h1{font-family:'Instrument Serif',serif;font-size:28px;margin-bottom:8px;}
+    .auth-loading.hidden{display:none;}
+    @media(max-width:768px){.main{padding:20px 16px;}.sidebar{display:none;}}
+  </style>
+</head>
+<body>
+  <div id="authLoading" class="auth-loading">Checking access…</div>
+  <div id="denied" class="denied"><h1>Access denied</h1><p style="color:var(--muted);margin:8px 0 20px;">This page is only for the family admin.</p><a href="dash.html">Back to dashboard</a></div>
+  <div class="layout" id="app" style="display:none;">
+    <aside class="sidebar">
+      <a href="dash.html" class="sidebar-logo">FamilyHub</a>
+      <nav>
+        <a href="dash.html" class="nav-item">Dashboard</a>
+        <a href="acc.html" class="nav-item">Account</a>
+        <a href="admin.html" class="nav-item active">Admin</a>
+        <a href="logs.html" class="nav-item">Logs</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-row"><div class="avatar" id="userAvatar">A</div><div><div class="user-name" id="userName" style="font-size:13px;font-weight:500;">—</div><div style="font-size:11px;color:var(--muted);">Admin</div></div></div>
+        <button class="btn-out" id="logoutBtn">Sign out</button>
+      </div>
+    </aside>
+    <main class="main">
+      <div class="page-header"><h1>Admin <span class="admin-badge">Full control</span></h1><p>Manage every part of the family space</p></div>
+      <div class="stats">
+        <div class="stat"><div class="label">Members</div><div class="value" id="sM">0</div></div>
+        <div class="stat"><div class="label">Events</div><div class="value" id="sE">0</div></div>
+        <div class="stat"><div class="label">Tasks</div><div class="value" id="sT">0</div></div>
+        <div class="stat"><div class="label">Notes</div><div class="value" id="sN">0</div></div>
+      </div>
+      <div class="panel">
+        <h2>Family members</h2>
+        <div class="form-row">
+          <input id="mName" placeholder="Full name">
+          <input id="mPronouns" placeholder="Pronouns" style="max-width:110px">
+          <select id="mRole"><option>Parent</option><option>Guardian</option><option>Child</option><option>Grandparent</option><option>Relative</option><option>Other</option></select>
+          <select id="mDes"><option>Member</option><option>Admin</option><option>Viewer</option></select>
+          <button class="btn-sm primary" id="addMember">Add</button>
+        </div>
+        <div id="membersBox"></div>
+      </div>
+      <div class="panel">
+        <h2>Events</h2>
+        <div class="form-row">
+          <input id="eTitle" placeholder="Title">
+          <input type="date" id="eDate">
+          <input type="time" id="eTime" style="max-width:110px">
+          <input id="eNote" placeholder="Note">
+          <button class="btn-sm primary" id="addEvent">Add</button>
+        </div>
+        <div id="eventsBox"></div>
+      </div>
+      <div class="panel">
+        <h2>Tasks</h2>
+        <div class="form-row"><input id="tText" placeholder="New task"><button class="btn-sm primary" id="addTask">Add</button></div>
+        <div id="tasksBox"></div>
+      </div>
+      <div class="panel">
+        <h2>Notes</h2>
+        <div class="form-row"><input id="nText" placeholder="New note" style="flex:2"><button class="btn-sm primary" id="addNote">Add</button></div>
+        <div id="notesBox"></div>
+      </div>
+      <div class="panel">
+        <h2>Danger zone</h2>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">These cannot be undone.</p>
+        <button class="btn-sm danger" id="clearEvents">Clear all events</button>
+        <button class="btn-sm danger" id="clearTasks">Clear all tasks</button>
+        <button class="btn-sm danger" id="clearNotes">Clear all notes</button>
+      </div>
+    </main>
+  </div>
+  <div class="toast" id="toast">Saved</div>
+<script>
+const SUPABASE_URL='https://bwzfzeazmnppgndysqky.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3emZ6ZWF6bW5wcGduZHlzcWt5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0ODUxNDcsImV4cCI6MjEwNjA2MTE0N30.OYjsU24HCcAmj_GKpqCWNsGgekwDJsCm3MKLuGlbiLo';
+const ADMIN_EMAIL='rajeevnitj@gmail.com';
+const {createClient}=supabase; const sb=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+let currentUser=null;
+function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
+async function logAct(action,type,id,details){try{await sb.from('activity_logs').insert({user_id:currentUser?.id,email:currentUser?.email,action,entity_type:type,entity_id:id?String(id):null,details});}catch(_){}}
+
+(async()=>{
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){location.href='login.html';return;}
+  currentUser=session.user;
+  if((currentUser.email||'').toLowerCase()!==ADMIN_EMAIL.toLowerCase()){
+    document.getElementById('authLoading').style.display='none';
+    document.getElementById('denied').style.display='flex';
+    return;
+  }
+  document.getElementById('userName').textContent=currentUser.email?.split('@')[0]||'Admin';
+  document.getElementById('userAvatar').textContent=(currentUser.email||'A')[0].toUpperCase();
+  document.getElementById('authLoading').classList.add('hidden');
+  document.getElementById('app').style.display='flex';
+  await loadAll();
+})();
+document.getElementById('logoutBtn').onclick=async()=>{await sb.auth.signOut();location.href='login.html';};
+
+let members=[],events=[],tasks=[],notes=[];
+async function loadAll(){
+  const [m,e,t,n]=await Promise.all([
+    sb.from('family_members').select('*').order('full_name'),
+    sb.from('events').select('*').order('event_date'),
+    sb.from('tasks').select('*').order('created_at',{ascending:false}),
+    sb.from('notes').select('*').order('created_at',{ascending:false})
+  ]);
+  members=m.data||[];events=e.data||[];tasks=t.data||[];notes=n.data||[];
+  document.getElementById('sM').textContent=members.length;
+  document.getElementById('sE').textContent=events.length;
+  document.getElementById('sT').textContent=tasks.length;
+  document.getElementById('sN').textContent=notes.length;
+  renderMembers();renderEvents();renderTasks();renderNotes();
+}
+function renderMembers(){
+  const b=document.getElementById('membersBox');
+  if(!members.length){b.innerHTML='<p class="empty">No members.</p>';return;}
+  b.innerHTML=`<table><thead><tr><th>Name</th><th>Pronouns</th><th>Role</th><th>Desig.</th><th></th></tr></thead><tbody>${members.map(m=>`<tr><td>${esc(m.full_name)}</td><td>${esc(m.pronouns)||'—'}</td><td>${esc(m.role)}</td><td>${esc(m.designation)}</td><td><button class="btn-sm danger" onclick="delMember('${m.id}')">Remove</button></td></tr>`).join('')}</tbody></table>`;
+}
+function renderEvents(){
+  const b=document.getElementById('eventsBox');
+  if(!events.length){b.innerHTML='<p class="empty">No events.</p>';return;}
+  b.innerHTML=`<table><thead><tr><th>Date</th><th>Time</th><th>Title</th><th>Note</th><th></th></tr></thead><tbody>${events.map(e=>`<tr><td>${esc(e.event_date)}</td><td>${esc(e.event_time)||'All day'}</td><td>${esc(e.title)}</td><td>${esc(e.note)||'—'}</td><td><button class="btn-sm danger" onclick="delEvent('${e.id}')">Remove</button></td></tr>`).join('')}</tbody></table>`;
+}
+function renderTasks(){
+  const b=document.getElementById('tasksBox');
+  if(!tasks.length){b.innerHTML='<p class="empty">No tasks.</p>';return;}
+  b.innerHTML=`<table><thead><tr><th>Task</th><th>Status</th><th></th></tr></thead><tbody>${tasks.map(t=>`<tr><td style="${t.done?'text-decoration:line-through;color:var(--muted)':''}">${esc(t.text)}</td><td>${t.done?'Done':'Open'}</td><td><button class="btn-sm" onclick="togTask('${t.id}')">${t.done?'Reopen':'Complete'}</button> <button class="btn-sm danger" onclick="delTask('${t.id}')">Remove</button></td></tr>`).join('')}</tbody></table>`;
+}
+function renderNotes(){
+  const b=document.getElementById('notesBox');
+  if(!notes.length){b.innerHTML='<p class="empty">No notes.</p>';return;}
+  b.innerHTML=`<table><thead><tr><th>Note</th><th>Date</th><th></th></tr></thead><tbody>${notes.map(n=>`<tr><td>${esc(n.text)}</td><td>${new Date(n.created_at).toLocaleDateString()}</td><td><button class="btn-sm danger" onclick="delNote('${n.id}')">Remove</button></td></tr>`).join('')}</tbody></table>`;
+}
+
+document.getElementById('addMember').onclick=async()=>{
+  const name=document.getElementById('mName').value.trim(); if(!name)return;
+  const {data,error}=await sb.from('family_members').insert({full_name:name,pronouns:document.getElementById('mPronouns').value.trim()||null,role:document.getElementById('mRole').value,designation:document.getElementById('mDes').value}).select().single();
+  if(error){alert(error.message);return;}
+  await logAct('created_member','member',data.id,`Added member "${name}"`);
+  document.getElementById('mName').value=''; document.getElementById('mPronouns').value='';
+  toast('Member added'); await loadAll();
+};
+window.delMember=async(id)=>{if(!confirm('Remove?'))return; const m=members.find(x=>x.id===id); await sb.from('family_members').delete().eq('id',id); await logAct('deleted_member','member',id,`Removed member "${m?.full_name}"`); toast('Removed'); await loadAll();};
+
+document.getElementById('addEvent').onclick=async()=>{
+  const title=document.getElementById('eTitle').value.trim(), date=document.getElementById('eDate').value;
+  if(!title||!date)return;
+  const {data,error}=await sb.from('events').insert({title,event_date:date,event_time:document.getElementById('eTime').value||null,note:document.getElementById('eNote').value.trim()||null,created_by:currentUser.id}).select().single();
+  if(error){alert(error.message);return;}
+  await logAct('created_event','event',data.id,`Created event "${title}"`);
+  ['eTitle','eDate','eTime','eNote'].forEach(id=>document.getElementById(id).value='');
+  toast('Event added'); await loadAll();
+};
+window.delEvent=async(id)=>{const e=events.find(x=>x.id===id); await sb.from('events').delete().eq('id',id); await logAct('deleted_event','event',id,`Deleted event "${e?.title}"`); toast('Removed'); await loadAll();};
+
+document.getElementById('addTask').onclick=async()=>{
+  const text=document.getElementById('tText').value.trim(); if(!text)return;
+  const {data,error}=await sb.from('tasks').insert({text,created_by:currentUser.id}).select().single();
+  if(error){alert(error.message);return;}
+  await logAct('created_task','task',data.id,`Created task "${text}"`);
+  document.getElementById('tText').value=''; toast('Task added'); await loadAll();
+};
+window.togTask=async(id)=>{const t=tasks.find(x=>x.id===id); if(!t)return; await sb.from('tasks').update({done:!t.done}).eq('id',id); await logAct(t.done?'reopened_task':'completed_task','task',id,`${t.done?'Reopened':'Completed'} "${t.text}"`); await loadAll();};
+window.delTask=async(id)=>{const t=tasks.find(x=>x.id===id); await sb.from('tasks').delete().eq('id',id); await logAct('deleted_task','task',id,`Deleted task "${t?.text}"`); toast('Removed'); await loadAll();};
+
+document.getElementById('addNote').onclick=async()=>{
+  const text=document.getElementById('nText').value.trim(); if(!text)return;
+  const {data,error}=await sb.from('notes').insert({text,created_by:currentUser.id}).select().single();
+  if(error){alert(error.message);return;}
+  await logAct('created_note','note',data.id,`Created note`);
+  document.getElementById('nText').value=''; toast('Note added'); await loadAll();
+};
+window.delNote=async(id)=>{await sb.from('notes').delete().eq('id',id); await logAct('deleted_note','note',id,`Deleted note`); toast('Removed'); await loadAll();};
+
+document.getElementById('clearEvents').onclick=async()=>{if(!confirm('Delete ALL events?'))return; await sb.from('events').delete().neq('id','00000000-0000-0000-0000-000000000000'); await logAct('cleared_events','event',null,'Cleared all events'); toast('Cleared'); await loadAll();};
+document.getElementById('clearTasks').onclick=async()=>{if(!confirm('Delete ALL tasks?'))return; await sb.from('tasks').delete().neq('id','00000000-0000-0000-0000-000000000000'); await logAct('cleared_tasks','task',null,'Cleared all tasks'); toast('Cleared'); await loadAll();};
+document.getElementById('clearNotes').onclick=async()=>{if(!confirm('Delete ALL notes?'))return; await sb.from('notes').delete().neq('id','00000000-0000-0000-0000-000000000000'); await logAct('cleared_notes','note',null,'Cleared all notes'); toast('Cleared'); await loadAll();};
+</script>
+</body>
+</html>

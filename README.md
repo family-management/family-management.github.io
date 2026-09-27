@@ -1,58 +1,61 @@
 # FamilyHub — Private Family Management
 
-Simple, minimalist, premium family management site (HTML only — no separate CSS/JS files). Uses Supabase for authentication and data.
+Premium, minimalist family management site. All HTML (inline CSS + JS). Supabase for auth.
 
-## Files
+## Design
 
-- `index.html` — Landing page
-- `login.html` — Sign-in only (no public signup)
-- `dash.html` — Protected dashboard
+- Inspired by modern clean product sites (Instrument Serif + Geist)
+- Soft Google-like ambient backlight / fog
+- No emojis — SVG icons only
+- Subtle entrance animations
+- Consistent layout across all pages
+
+## Pages
+
+| File | Description |
+|------|-------------|
+| `index.html` | Landing page |
+| `login.html` | Sign-in only (no public signup) |
+| `dash.html` | Full dashboard — Overview, **Calendar**, **Tasks**, **Notes**, **Members** |
+| `acc.html` | Account — change name, pronouns, role, designation |
+
+## Features in Dashboard
+
+- **Calendar** — month view, select day, add / remove events
+- **Tasks** — add, complete, delete (persisted in localStorage)
+- **Notes** — shared notes with timestamps
+- **Members** — family member cards (name, role, pronouns)
+- Data is stored in `localStorage` for demo. Replace with Supabase tables when ready.
 
 ## Setup
 
-1. Create a project at [supabase.com](https://supabase.com).
-2. In Authentication → Providers, keep Email enabled.
-3. **Do not enable public sign-up** if you want fully private access (or leave it on and simply never share a signup link). Add family members yourself:
-   - Authentication → Users → Add user (email + password), **or**
-   - Use the Supabase dashboard / SQL to insert users.
-4. Open `login.html` and `dash.html` and replace:
+1. Create a project at [supabase.com](https://supabase.com)
+2. Authentication → Users → Add user (email + password) for each family member
+3. In **login.html**, **dash.html** and **acc.html** replace:
 
 ```js
 const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
 const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
 ```
 
-with your Project URL and anon/public key (Settings → API).
+4. Open `index.html` in a browser
 
-5. (Optional) Create tables, e.g.:
+## Optional: real tables
 
 ```sql
 create table family_members (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id),
   full_name text,
-  role text default 'member',
+  pronouns text,
+  role text,
+  designation text default 'Member',
   created_at timestamptz default now()
 );
 
--- Enable RLS and add policies so only authenticated users can read
 alter table family_members enable row level security;
-create policy "Family can read members"
-  on family_members for select
-  to authenticated
-  using (true);
+create policy "Authenticated can read"
+  on family_members for select to authenticated using (true);
 ```
 
-6. Open `index.html` in a browser (or serve the folder with any static host).
-
-## Design notes
-
-- No gradients on UI elements (only very soft ambient light for the “side light / fog” effect).
-- Google-inspired minimalist palette, soft layered shadows, clean typography.
-- All styles and scripts are inline as requested.
-
-## Security reminder
-
-- Never put the **service_role** key in the frontend.
-- Use Row Level Security (RLS) on every table.
-- Keep the anon key restricted by RLS policies.
+Then replace the localStorage helpers in the scripts with Supabase queries.
